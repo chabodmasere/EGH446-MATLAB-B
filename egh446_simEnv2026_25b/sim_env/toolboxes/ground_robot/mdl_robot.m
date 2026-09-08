@@ -22,9 +22,9 @@ disp('mdl_robot executed - generating new mission')
 % Environment Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-coord_lo = -100;
-coord_hi = 100;
-no_wps = 10;
+x_max = 52;
+y_max = 41;
+no_wps = 5;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initial Conditions
@@ -32,11 +32,11 @@ no_wps = 10;
 
 %% Random start position and heading
 
-robot.X = randi([coord_lo, coord_hi]);
-robot.Y = randi([coord_lo, coord_hi]);
+robot.X = 2;
+robot.Y = 2;
 
 % Random heading from -pi to pi
-robot.Theta = -pi + 2*pi*rand();
+robot.Theta = 0;
 
 %% Fixed start for controlled testing
 %robot.X = 0;
@@ -48,7 +48,7 @@ robot.Theta = -pi + 2*pi*rand();
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Generate random waypoint locations
-wp_list = wp_gen(coord_lo, coord_hi, no_wps);
+wp_list = wp_gen(x_max, y_max, no_wps, [robot.X, robot.Y], logical_map);
 
 % Optimise waypoint visitation order from vehicle start position
 [wp_ordered, tour_len] = wp_antColony( ...
