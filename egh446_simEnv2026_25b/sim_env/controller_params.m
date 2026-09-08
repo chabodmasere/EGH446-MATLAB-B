@@ -13,7 +13,7 @@ K_theta = 1;
 K_dist = 0.75;
 
 % Maximum forward velocity [m/s]
-v_max = 3.5;
+v_max = 1.5;
 
 % Maximum yaw rate [rad/s]
 omega_max = (2*pi)/5;

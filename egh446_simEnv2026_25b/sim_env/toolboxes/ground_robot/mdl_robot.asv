@@ -30,10 +30,12 @@ no_wps = 5;
 % Initial Conditions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Fixed starting position and heading as per Instructions
+%% Random start position and heading
 
 robot.X = 2;
 robot.Y = 2;
+
+% Random heading 
 robot.Theta = 0;
 
 %% Fixed start for controlled testing
