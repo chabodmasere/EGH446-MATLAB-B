@@ -13,7 +13,7 @@ K_theta = 1;
 K_dist = 0.75;
 
 % Maximum forward velocity [m/s]
-v_max = 1.5;
+v_max = 2;
 
 % Maximum yaw rate [rad/s]
 omega_max = (2*pi)/5;
@@ -22,10 +22,8 @@ omega_max = (2*pi)/5;
 heading_speed_min = 0.1;
 
 % RVWP guidance
-rvwp_lookahead = 5.0;
-
-% capture Radius
-capture_radius = 1.5;
+rvwp_lookahead = 5;
+capture_radius = 1;
 
 % Heading PID controller
 %K_i = 0;

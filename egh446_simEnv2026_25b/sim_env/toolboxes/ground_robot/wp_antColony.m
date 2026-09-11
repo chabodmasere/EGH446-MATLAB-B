@@ -1,8 +1,12 @@
-function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, opt)
+function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, D, opt)
 %WP_ANTCOLONY  Order waypoints by ant colony optimisation.
 %
-%   [wp_ordered, dist_cum]          = wp_antColony(wp_list, x0)
-%   [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, opt)
+%   [wp_ordered, dist_cum]          = wp_antColony(wp_list, x0, D)
+%   [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, D, opt)
+%
+%   D is an (N+1)-by-(N+1) matrix of traversable distances, node 1 being the
+%   depot x0 and node w+1 being waypoint w. Build it with:
+%       D = wp_distances([x0; wp_list], logical_map);
 %
 %   OPT optionally overrides any tuneable parameter; omitted fields fall back
 %   to the deployed defaults below. HISTORY is iterations-by-2: best-so-far
@@ -12,7 +16,7 @@ function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, opt)
 
     def = aco_defaults();
 
-    if nargin < 3 || isempty(opt), opt = struct(); end
+    if nargin < 4 || isempty(opt), opt = struct(); end
     fn = fieldnames(def);
     for ii = 1:numel(fn)
         if ~isfield(opt, fn{ii}), opt.(fn{ii}) = def.(fn{ii}); end
@@ -46,7 +50,7 @@ function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, opt)
             ant_dist = 0;
 
             for k = 1:N % iterate through path
-                % index of the current node in path_pheramones.
+                % index of the current node in path_pheramones and D.
                 % row/col 1 is the depot x0, row/col w+1 is waypoint w.
                 % at k == 1 the ant is still at x0; after that the ant is
                 % sitting on the waypoint it chose last step, so idx carries
@@ -64,8 +68,8 @@ function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, opt)
                     end
                     % eps floor: coincident points give d_k = 0, so (1/d_k)^beta
                     % is Inf and the normalisation below yields NaN.
-                    d_k = max(norm(wp_list(m,:) - xc), eps);   % Nij, proximity to wp m
-                    tau = path_pheramones(index_xc, m+1);      % Tij, trail on this edge
+                    d_k = max(D(index_xc, m+1), eps);     % Nij, proximity to wp m
+                    tau = path_pheramones(index_xc, m+1); % Tij, trail on this edge
                     probabilities(m) = tau^alpha * (1/d_k)^beta;
                 end
 
@@ -80,7 +84,7 @@ function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, opt)
                     idx = find(unvisted_wps, 1, 'last');
                 end
 
-                ant_dist = ant_dist + norm(wp_list(idx,:) - xc);
+                ant_dist = ant_dist + D(index_xc, idx+1);
                 xc = wp_list(idx, :);
                 ants_path((j-1)*N+k,:) = xc;
                 ants_idx((j-1)*N+k)    = idx;

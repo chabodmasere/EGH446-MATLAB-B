@@ -43,17 +43,15 @@ robot.Theta = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Generate random waypoint locations
-wp_list = wp_gen(x_max, y_max, no_wps, [robot.X, robot.Y], logical_map);
+occ = inflate_map(logical_map, 4);          % 0.25 m radius + 0.15 m margin
 
-% Optimise waypoint visitation order from vehicle start position
-[wp_ordered, tour_len] = wp_antColony( ...
-    wp_list, [robot.X robot.Y]);
+wp_list = wp_gen(x_max, y_max, no_wps, [robot.X, robot.Y], occ);
+D = waypoint_distances([[robot.X, robot.Y]; wp_list], occ);
+[wp_ordered, dist_cum, history] = wp_antColony(wp_list, [robot.X,robot.Y], D);
 
-% Route used by RVWP guidance:
-% initial vehicle position + ordered waypoints
-wp_plot = [robot.X robot.Y;
-    wp_ordered];
-
+wp_route = [robot.X robot.Y; wp_ordered];
+[path, path_dist] = wp_path(wp_route, occ);
+wp_plot = path;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Diagnostics
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
