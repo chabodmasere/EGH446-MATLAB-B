@@ -35,6 +35,7 @@ no_wps = 5;
 robot.X = 2;
 robot.Y = 2;
 robot.Theta = 0;
+% robot.Theta = -pi + 2*pi*rand();   % random heading, for robustness testing only
 
 %% Fixed start for controlled testing
 
