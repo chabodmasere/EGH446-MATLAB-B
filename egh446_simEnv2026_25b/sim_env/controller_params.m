@@ -13,7 +13,7 @@ K_theta = 1;
 K_dist = 0.75;
 
 % Maximum forward velocity [m/s]
-v_max = 2;
+v_max = 1;                 % was 2: halved to give obstacle avoidance time to react
 
 % Maximum yaw rate [rad/s]
 omega_max = (2*pi)/5;
@@ -22,8 +22,8 @@ omega_max = (2*pi)/5;
 heading_speed_min = 0.1;
 
 % RVWP guidance
-rvwp_lookahead = 5;
-capture_radius = 1;
+rvwp_lookahead = 5;        % see note below: try 3 if it cuts corners near walls
+capture_radius = 0.8;
 
 % Heading PID controller
 %K_i = 0;
@@ -35,11 +35,10 @@ assignin('base', 'K_theta', K_theta);
 assignin('base', 'K_dist', K_dist);
 assignin('base', 'v_max', v_max);
 assignin('base', 'omega_max', omega_max);
-assignin('base','heading_speed_min',heading_speed_min);
-assignin('base','rvwp_lookahead',rvwp_lookahead);
-assignin('base','capture_radius',capture_radius);
+assignin('base', 'heading_speed_min', heading_speed_min);
+assignin('base', 'rvwp_lookahead', rvwp_lookahead);
+assignin('base', 'capture_radius', capture_radius);
 %assignin('base','K_i',K_i);
 %assignin('base','K_d',K_d);
 %assignin('base','N_d',N_d);
-
 end
