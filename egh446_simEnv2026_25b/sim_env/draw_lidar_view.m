@@ -24,7 +24,7 @@ function draw_lidar_view(pose, ranges, scanAngles, scanPose)
 %                  scanned build up behind it as an orange point cloud. The
 %                  Lidar Sensor block adds up to 0.45 m to every range, so
 %                  the cloud sits in a band just behind each wall face
-%     CLEARANCE    a ring at the safety radius and a dotted line to the
+%     CLEARANCE    a ring on the robot's outline and a dotted line to the
 %                  nearest return, labelled with its distance; both take the
 %                  colour of that range
 %     ARENA        the figure itself is restyled once per run to look like a
@@ -40,7 +40,11 @@ function draw_lidar_view(pose, ranges, scanAngles, scanPose)
 
 % ---------- Behaviour ----------
 R_MAX     = 5;       % [m] lidar max range (match the Lidar Sensor block)
-CLEARANCE = 0.40;    % [m] robot radius + safety margin
+RING_R    = 0.25;    % [m] ring radius = robot radius, so the ring recolours the
+                     % robot's outline. (It used to sit at the 0.40 m clearance
+                     % distance, but obstacles are points and their sprites are
+                     % drawn larger, so that ring cut across the sprite on a
+                     % close but legal pass.)
 R_CLOSE   = 0.5;     % [m] range drawn fully red
 R_CLEAR   = 2.5;     % [m] range drawn fully green
 CELL      = 0.10;    % [m] mapped-wall resolution (one remembered point per cell)
@@ -48,8 +52,8 @@ JUMP      = 2.0;     % [m] a pose jump this large means a new run: clear the map
 MAX_FPS   = 30;      % redraw cap so the overlay never slows the simulation
 
 % ---------- Look ----------
-FIELD_COL   = [0.00 0.62 0.72];
-FIELD_ALPHA = 0.13;
+FIELD_COL   = [0.30 0.92 1.00];    % bright cyan: reads on the dark arena floors
+FIELD_ALPHA = 0.30;
 MAP_COL     = [1.00 0.45 0.00];
 RAMP        = [0.86 0.10 0.10;    % close
                1.00 0.66 0.00;    % caution
@@ -144,7 +148,7 @@ else
     set(h.near, 'XData', NaN, 'YData', NaN);
     set(h.label, 'String', '');
 end
-set(h.ring, 'XData', x + CLEARANCE*h.cu, 'YData', y + CLEARANCE*h.su, 'Color', col);
+set(h.ring, 'XData', x + RING_R*h.cu, 'YData', y + RING_R*h.su, 'Color', col);
 
 drawnow limitrate
 end
@@ -173,7 +177,7 @@ h.field   = patch(ax, NaN, NaN, fieldCol, 'EdgeColor', 'none', ...
                   'FaceAlpha', fieldAlpha, common{:});
 h.map     = line(ax, NaN, NaN, 'LineStyle', 'none', 'Marker', '.', ...
                  'MarkerSize', 7, 'Color', mapCol, common{:});
-h.surface = line(ax, NaN, NaN, 'LineWidth', 1.6, 'Color', fieldCol, common{:});
+h.surface = line(ax, NaN, NaN, 'LineWidth', 2.2, 'Color', fieldCol, common{:});
 h.near    = line(ax, NaN, NaN, 'LineStyle', ':', 'LineWidth', 1.4, common{:});
 h.returns = patch(ax, 'XData', NaN, 'YData', NaN, 'FaceColor', 'none', ...
                   'EdgeColor', 'none', 'Marker', 'o', 'MarkerSize', 5, ...
@@ -338,38 +342,57 @@ end
 
 % =====================================================================
 function draw_barrel(ax, x, y, label)
-% Barrel sprite centred on an obstacle: 1 red, 2 green, 3 blue (the blue
-% one is the oil drum, so it gets a flame).
-S   = 1.4;                     % [m] sprite scale; cosmetic, not the obstacle size
-OUT = [0.10 0.05 0.03];
-th  = linspace(0, 2*pi, 28);
-cu  = cos(th);  su = sin(th);
+% Barrel sprite centred on an obstacle, seen side-on like the arcade game:
+% flat top with a lid, bulging sides, metal hoops and wooden staves.
+% 1 red, 2 green, 3 blue.
+S   = 1.0;                     % [m] sprite scale; cosmetic, not the obstacle size.
+                               % The sprite reaches ~0.44 m from the obstacle; the
+                               % avoidance block keeps the robot's centre ~0.70 m
+                               % away, so the drawn robot (0.25 m radius) passes
+                               % clear of it
+OUT  = [1.00 0.95 0.80];       % light outline: reads on the black floor
+HOOP = [0.16 0.14 0.14];       % dark iron
 common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
           'PickableParts', 'none', 'Tag', 'arenaFruit'};
 switch label
-    case 1,    body = [0.85 0.22 0.12];  band = [0.45 0.08 0.04];
-    case 2,    body = [0.25 0.72 0.25];  band = [0.08 0.36 0.10];
-    otherwise, body = [0.22 0.42 0.95];  band = [0.07 0.15 0.50];
+    case 1,    wood = [0.88 0.24 0.12];  dark = [0.50 0.10 0.05];  lid = [1.00 0.52 0.38];
+    case 2,    wood = [0.26 0.72 0.24];  dark = [0.09 0.38 0.10];  lid = [0.58 0.92 0.50];
+    otherwise, wood = [0.24 0.46 0.96];  dark = [0.08 0.18 0.55];  lid = [0.58 0.76 1.00];
 end
-if label ~= 1 && label ~= 2    % flame on the oil drum
-    fx = [-0.20 -0.12 -0.06 0.02 0.10 0.18 0.22 0.00];
-    fy = [ 0.36  0.62  0.48 0.78 0.52 0.66 0.36 0.30];
-    patch(ax, x + S*fx, y + S*fy, [1.00 0.55 0.05], 'EdgeColor', [1 0.9 0.2], ...
-          'LineWidth', 0.5, common{:});
+
+BOT = -0.44;  TOP = 0.36;                       % body, lid sits on top
+MID = (BOT + TOP)/2;  HALF = (TOP - BOT)/2;
+wid = @(yy) 0.25 + 0.11*(1 - ((yy - MID)/HALF).^2);   % half-width: bulges in the middle
+ys  = linspace(BOT, TOP, 17);
+slab = @(y0, y1, col, edge) patch(ax, ...
+    x + S*[wid(linspace(y0, y1, 7)), -wid(linspace(y1, y0, 7))], ...
+    y + S*[linspace(y0, y1, 7), linspace(y1, y0, 7)], ...
+    col, 'EdgeColor', edge, 'LineWidth', 0.5, common{:});
+
+% body
+patch(ax, x + S*[wid(ys), -wid(fliplr(ys))], y + S*[ys, fliplr(ys)], wood, ...
+      'EdgeColor', 'none', common{:});
+% staves: follow the bulge of the side
+for f = [-0.62 -0.22 0.22 0.62]
+    line(ax, x + S*f*wid(ys), y + S*ys, 'Color', dark, 'LineWidth', 0.75, common{:});
 end
-patch(ax, x + S*0.36*cu, y + S*0.44*su, body, 'EdgeColor', OUT, ...
-      'LineWidth', 0.5, common{:});
-for yb = [-0.20 0.20]          % hoops, bowed like the barrel side
-    w = 0.36*sqrt(1 - (yb/0.44)^2);
-    line(ax, x + S*[-w w], y + S*[yb yb], 'Color', band, 'LineWidth', 2, common{:});
-end
-for xs = [-0.14 0.14]          % staves
-    hgt = 0.44*sqrt(1 - (xs/0.36)^2);
-    line(ax, x + S*[xs xs], y + S*0.9*[-hgt hgt], 'Color', band, ...
-         'LineWidth', 0.5, common{:});
-end
-patch(ax, x + S*(-0.17 + 0.05*cu), y + S*(0.02 + 0.12*su), [1 1 1], ...
-      'EdgeColor', 'none', 'FaceAlpha', 0.6, common{:});
+% highlight down the left staves
+patch(ax, x + S*[-0.56*wid(ys), -0.30*wid(fliplr(ys))], y + S*[ys, fliplr(ys)], ...
+      [1 1 1], 'EdgeColor', 'none', 'FaceAlpha', 0.22, common{:});
+% iron hoops: two round the belly, one at each end
+slab(BOT,        BOT + 0.07, HOOP, 'none');
+slab(MID - 0.24, MID - 0.15, HOOP, 'none');
+slab(MID + 0.15, MID + 0.24, HOOP, 'none');
+slab(TOP - 0.07, TOP,        HOOP, 'none');
+% lid, seen slightly from above
+th = linspace(0, 2*pi, 24);
+patch(ax, x + S*wid(TOP)*cos(th), y + S*(TOP + 0.08*sin(th)), lid, ...
+      'EdgeColor', HOOP, 'LineWidth', 0.75, common{:});
+% outline last so it sits on top of the hoops
+th = linspace(pi, 2*pi, 12);
+line(ax, x + S*[wid(ys), wid(TOP)*cos(fliplr(th)), -wid(fliplr(ys)), wid(BOT)], ...
+         y + S*[ys, TOP - 0.08*sin(fliplr(th)), fliplr(ys), BOT], ...
+     'Color', OUT, 'LineWidth', 1.2, common{:});
 end
 
 % =====================================================================
@@ -427,7 +450,10 @@ end
 function draw_fruit(ax, x, y, label)
 % Small vector sprite centred on an obstacle:
 %   1 (red) cherries, 2 (green) apple, 3 (blue) blueberry.
-S   = 1.4;                     % [m] sprite scale; cosmetic, not the obstacle size
+S   = 0.6;                     % [m] sprite scale. Cosmetic, but sized on purpose: the
+                               % sprite reaches at most ~0.27 m from the obstacle, so
+                               % the drawn robot (0.25 m radius) never overlaps it
+                               % when passing at a legal distance
 OUT = [0.10 0.05 0.03];        % outline
 th  = linspace(0, 2*pi, 28);
 cu  = cos(th);  su = sin(th);
