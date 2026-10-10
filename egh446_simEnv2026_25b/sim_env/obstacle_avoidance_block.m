@@ -115,16 +115,22 @@ for j = 1:n_mem
     end
 
     if side == 0
-        if b >= 0
-            side = -1;     % obstacle on left -> pass on the right
+        % Pass on the side the waypoint is on. Choosing only from the
+        % obstacle's bearing could pick the far side and orbit the obstacle.
+        dgo = atan2(sin(e - b), cos(e - b));   % guidance direction relative to obstacle
+        if abs(dgo) > 0.1
+            side = sign(dgo);
+        elseif b >= 0
+            side = -1;     % dead ahead, obstacle slightly left -> pass on the right
         else
-            side = 1;      % obstacle on right -> pass on the left
+            side = 1;      % dead ahead, obstacle slightly right -> pass on the left
         end
     end
 
     w  = k_rep * (1/r - 1/d_eff);
-    hx = hx - w*cos(b) - w*kt_eff*side*sin(b);
-    hy = hy - w*sin(b) + w*kt_eff*side*cos(b);
+    kt = kt_eff * max(0, cos(b));   % slide fades out as the obstacle comes alongside
+    hx = hx - w*cos(b) - w*kt*side*sin(b);
+    hy = hy - w*sin(b) + w*kt*side*cos(b);
     d_min = min(d_min, r);
 end
 
