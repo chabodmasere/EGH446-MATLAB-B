@@ -30,7 +30,10 @@ function draw_lidar_view(pose, ranges, scanAngles, scanPose)
 %     ARENA        the figure itself is restyled once per run to look like a
 %                  video-game level: dark tiled floor, neon-edged walls, and
 %                  the red/green/blue obstacles drawn as cherries, green
-%                  apples and blueberries
+%                  apples and blueberries. The 'kong' style is a Donkey
+%                  Kong level instead: girder walls, the obstacles as
+%                  barrels, the waypoints as Pauline's lost hat, parasol
+%                  and purse, and Pauline herself at the last waypoint
 %
 %   Save this file in the sim_env folder. It is called from the 'lidar_viz'
 %   MATLAB Function block through coder.extrinsic. Do NOT paste it into a block.
@@ -51,7 +54,7 @@ MAP_COL     = [1.00 0.45 0.00];
 RAMP        = [0.86 0.10 0.10;    % close
                1.00 0.66 0.00;    % caution
                0.10 0.66 0.30];   % clear
-ARENA_STYLE = 'dungeon'; % arena colourway: 'tron' 'arcade' 'grass' 'synth' 'dungeon'
+ARENA_STYLE = 'kong';    % arena colourway: 'tron' 'arcade' 'grass' 'synth' 'dungeon' 'kong'
                         % or 'off' to leave the visualizer's plain white map alone
 
 persistent h st
@@ -195,8 +198,16 @@ if isappdata(ax, 'arenaStyled'), return; end
 setappdata(ax, 'arenaStyled', true);
 
 % BG figure, INK axis text, FLOOR_A/B 1 m checker tiles, SEAM tile seams,
-% WALL fill, EDGE wall outline, GLOW light spilling from walls onto the floor
+% WALL fill, EDGE wall outline, GLOW light spilling from walls onto the floor,
+% TRUSS cross-bracing drawn inside the walls (empty = plain walls)
+TRUSS = [];
 switch style
+    case 'kong'      % Donkey Kong: black level, red steel girders
+        BG = [0 0 0];             INK = [0.35 0.90 1.00];
+        FLOOR_A = [0 0 0];        FLOOR_B = [0.03 0.02 0.05];
+        SEAM = [0.07 0.05 0.12];  WALL = [0.80 0.10 0.26];
+        EDGE = [1.00 0.45 0.60];  GLOW = [0.22 0.02 0.07];
+        TRUSS = [0.30 0.02 0.10];
     case 'arcade'    % black maze, blue walls, yellow text
         BG = [0 0 0];             INK = [1.00 0.85 0.10];
         FLOOR_A = [0 0 0];        FLOOR_B = [0.03 0.03 0.05];
@@ -264,6 +275,10 @@ if ~isempty(img)
         ch(seam) = SEAM(c);
         ch = ch + GLOW(c)*glow;
         ch(wall) = WALL(c);
+        if ~isempty(TRUSS)      % girder cross-bracing, one X every half metre
+            half = max(2, round(ppm/2));
+            ch(wall & (mod(cc + rr, half) == 0 | mod(cc - rr, half) == 0)) = TRUSS(c);
+        end
         ch(edge) = EDGE(c);
         rgb(:,:,c) = min(1, max(0, ch));
     end
@@ -297,8 +312,114 @@ end
 if size(obs, 2) >= 3
     set(findobj(ax, 'Type', 'scatter'), 'Visible', 'off');
     for i = 1:size(obs, 1)
-        draw_fruit(ax, obs(i,1), obs(i,2), obs(i,3));
+        if strcmp(style, 'kong')
+            draw_barrel(ax, obs(i,1), obs(i,2), obs(i,3));
+        else
+            draw_fruit(ax, obs(i,1), obs(i,2), obs(i,3));
+        end
     end
+end
+
+% ---- Kong: waypoints as Pauline's lost items, Pauline at the last one ----
+if strcmp(style, 'kong')
+    wps = [];
+    try
+        wps = double(evalin('base', 'wp_ordered'));
+    catch
+    end
+    if size(wps, 2) >= 2
+        set(findobj(ax, 'Type', 'line', 'Marker', 'x'), 'Visible', 'off');
+        for i = 1:size(wps, 1)
+            draw_pickup(ax, wps(i,1), wps(i,2), i, size(wps, 1));
+        end
+    end
+end
+end
+
+% =====================================================================
+function draw_barrel(ax, x, y, label)
+% Barrel sprite centred on an obstacle: 1 red, 2 green, 3 blue (the blue
+% one is the oil drum, so it gets a flame).
+S   = 1.4;                     % [m] sprite scale; cosmetic, not the obstacle size
+OUT = [0.10 0.05 0.03];
+th  = linspace(0, 2*pi, 28);
+cu  = cos(th);  su = sin(th);
+common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
+          'PickableParts', 'none', 'Tag', 'arenaFruit'};
+switch label
+    case 1,    body = [0.85 0.22 0.12];  band = [0.45 0.08 0.04];
+    case 2,    body = [0.25 0.72 0.25];  band = [0.08 0.36 0.10];
+    otherwise, body = [0.22 0.42 0.95];  band = [0.07 0.15 0.50];
+end
+if label ~= 1 && label ~= 2    % flame on the oil drum
+    fx = [-0.20 -0.12 -0.06 0.02 0.10 0.18 0.22 0.00];
+    fy = [ 0.36  0.62  0.48 0.78 0.52 0.66 0.36 0.30];
+    patch(ax, x + S*fx, y + S*fy, [1.00 0.55 0.05], 'EdgeColor', [1 0.9 0.2], ...
+          'LineWidth', 0.5, common{:});
+end
+patch(ax, x + S*0.36*cu, y + S*0.44*su, body, 'EdgeColor', OUT, ...
+      'LineWidth', 0.5, common{:});
+for yb = [-0.20 0.20]          % hoops, bowed like the barrel side
+    w = 0.36*sqrt(1 - (yb/0.44)^2);
+    line(ax, x + S*[-w w], y + S*[yb yb], 'Color', band, 'LineWidth', 2, common{:});
+end
+for xs = [-0.14 0.14]          % staves
+    hgt = 0.44*sqrt(1 - (xs/0.36)^2);
+    line(ax, x + S*[xs xs], y + S*0.9*[-hgt hgt], 'Color', band, ...
+         'LineWidth', 0.5, common{:});
+end
+patch(ax, x + S*(-0.17 + 0.05*cu), y + S*(0.02 + 0.12*su), [1 1 1], ...
+      'EdgeColor', 'none', 'FaceAlpha', 0.6, common{:});
+end
+
+% =====================================================================
+function draw_pickup(ax, x, y, k, n)
+% Sprite for waypoint K of N. The intermediate waypoints are Pauline's
+% lost items (hat, parasol, purse, repeating); the last one is Pauline.
+S    = 1.4;
+OUT  = [0.10 0.05 0.03];
+PINK = [1.00 0.45 0.72];
+DARK = [0.75 0.15 0.45];
+th   = linspace(0, 2*pi, 28);
+cu   = cos(th);  su = sin(th);
+common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
+          'PickableParts', 'none', 'Tag', 'arenaFruit'};
+blob = @(cx, cy, rx, ry, col) patch(ax, x + S*(cx + rx*cu), y + S*(cy + ry*su), ...
+            col, 'EdgeColor', OUT, 'LineWidth', 0.5, common{:});
+poly = @(px, py, col) patch(ax, x + S*px, y + S*py, col, 'EdgeColor', OUT, ...
+            'LineWidth', 0.5, common{:});
+pen  = @(px, py, col, w) line(ax, x + S*px, y + S*py, 'Color', col, ...
+            'LineWidth', w, common{:});
+
+if k == n                      % Pauline
+    blob(0.00, 0.36, 0.24, 0.24, [0.80 0.40 0.10]);                 % hair
+    poly([-0.10 0.10 0.34 -0.34], [0.12 0.12 -0.50 -0.50], PINK);   % dress
+    pen([-0.10 -0.36], [0.06 0.30], [1.00 0.82 0.68], 2);           % arms up
+    pen([ 0.10  0.36], [0.06 0.30], [1.00 0.82 0.68], 2);
+    blob(0.00, 0.30, 0.15, 0.15, [1.00 0.82 0.68]);                 % face
+    text(ax, x, y + S*0.80, 'HELP!', 'Color', [0.35 0.90 1.00], ...
+         'FontWeight', 'bold', 'FontSize', 9, 'FontName', 'monospaced', ...
+         'HorizontalAlignment', 'center', common{:});
+else
+    switch mod(k - 1, 3)
+        case 0                 % hat
+            blob(0.00, -0.10, 0.42, 0.11, PINK);
+            blob(0.00,  0.06, 0.22, 0.20, PINK);
+            pen([-0.21 0.21], [-0.03 -0.03], DARK, 2);
+        case 1                 % parasol
+            a = linspace(0, pi, 16);
+            poly(0.42*cos(a), 0.10 + 0.34*sin(a), PINK);
+            pen([0 0], [0.10 -0.42], [0.95 0.95 0.95], 1.5);
+            pen([0 0.08 0.14], [-0.42 -0.50 -0.42], [0.95 0.95 0.95], 1.5);
+            pen([-0.14 0 0.14; 0 0 0]', [0.10 0.10 0.10; 0.42 0.44 0.42]', DARK, 0.5);
+        otherwise              % purse
+            a = linspace(0, pi, 16);
+            pen(0.18*cos(a), 0.10 + 0.26*sin(a), DARK, 2);
+            poly([-0.24 0.24 0.32 -0.32], [0.12 0.12 -0.36 -0.36], PINK);
+            blob(0.00, 0.02, 0.05, 0.05, [1.00 0.90 0.30]);
+    end
+    text(ax, x + S*0.45, y + S*0.40, sprintf('%d', k), 'Color', [1 1 1], ...
+         'FontWeight', 'bold', 'FontSize', 9, 'FontName', 'monospaced', common{:});
 end
 end
 
