@@ -5,14 +5,11 @@ function [theta_cmd_safe, v_scale, avoid_active, d_obs] = obstacle_avoidance(the
 %   Walls     : Lidar fan       -> short-range repulsion (backup to the planner's inflation)
 %   Speed     : slows near obstacles and in sharp turns, but never stops
 %
-% GOAL-AWARE FIX (stops the robot circling a waypoint):
-%   The 12 obstacles are not on the planner's map, so a random waypoint can
-%   land right next to one. The old repulsion (felt from 3 m) plus the
-%   tangential slide then held the robot outside the capture radius and
-%   swept it round and round the obstacle forever. Now, as the robot nears
-%   its waypoint, the obstacle "reach" shrinks with dist_to_wp (but never
-%   below D_NEAR, which still protects the 0.40 m clearance) and the
-%   sideways slide fades out, so the robot can finish its approach.
+% GOAL-AWARE FIX: as the robot nears its waypoint, obstacle reach shrinks
+% with dist_to_wp (never below D_NEAR, protecting the 0.40 m clearance)
+% and the sideways slide fades out, so it can finish its approach.
+% If dist_to_wp is not available (input unwired -> reads 0) the block
+% simply behaves like the original avoidance: full reach, full slide.
 %
 % Inputs
 %   theta_cmd  [1]    heading from Guidance (world frame, rad)
@@ -44,11 +41,14 @@ scanAngles = linspace(-pi/2, pi/2, 13);   % MUST match the Lidar Sensor block
 d_wall  = 1.0;    % [m] walls closer than this push the robot away
 k_wall  = 0.8;    % wall push strength
 
+% ---------- Tuning: smoothing ----------
+a_f     = 0.02;   % heading low-pass per step (block runs at 100 Hz -> ~0.5 s time constant)
+
 % ---------- Tuning: speed ----------
 v_floor = 0.3;    % never below 30% speed (steered vehicle must move to turn)
 
 % ---------- Memory ----------
-persistent mem n_mem side
+persistent mem n_mem side th_f
 if isempty(mem)
     mem   = zeros(N_MAX, 2);
     n_mem = 0;
@@ -59,22 +59,16 @@ xr   = x_hat(1);
 yr   = x_hat(2);
 th_r = x_hat(3);
 
-% ---------- 0) Mission complete: hold still ----------
-% Guidance sends dist_to_wp = 0 (and theta_cmd = theta) once the last
-% waypoint is captured. Pass the heading straight through and zero the
-% speed, so nothing here can make the robot rotate on the spot.
-if dist_to_wp <= 0
-    theta_cmd_safe = theta_cmd;
-    v_scale        = 0;
-    avoid_active   = 0;
-    d_obs          = inf;
-    return
+% ---------- 0) Goal-aware reach (only when dist_to_wp is available) ----------
+if dist_to_wp > 0
+    d_eff  = min(d_inf, max(D_NEAR, dist_to_wp));
+    kt_eff = k_tan * min(1, dist_to_wp / d_inf);
+    dw_eff = min(d_wall, max(0.5, dist_to_wp));
+else
+    d_eff  = d_inf;       % no goal info: behave like the original block
+    kt_eff = k_tan;
+    dw_eff = d_wall;
 end
-
-% Obstacle reach and slide strength shrink as the waypoint gets close
-d_eff  = min(d_inf, max(D_NEAR, dist_to_wp));
-kt_eff = k_tan * min(1, dist_to_wp / d_inf);
-dw_eff = min(d_wall, max(0.5, dist_to_wp));
 
 % ---------- 1) Store detected obstacles in WORLD coordinates ----------
 for i = 1:size(detections, 1)
@@ -148,9 +142,17 @@ for i = 1:nb
 end
 
 % ---------- 5) Output heading ----------
-e_safe = atan2(hy, hx);
-th = th_r + e_safe;
-theta_cmd_safe = atan2(sin(th), cos(th));
+% Low-pass the world-frame heading. Estimate noise reaches this point
+% through the guidance bearing and, much amplified, through the 1/r
+% obstacle and wall terms; averaging it here stops it being passed on
+% to the controller as steering jitter.
+th = th_r + atan2(hy, hx);
+if isempty(th_f)
+    th_f = th;
+end
+th_f = th_f + a_f*atan2(sin(th - th_f), cos(th - th_f));
+theta_cmd_safe = atan2(sin(th_f), cos(th_f));
+e_safe = atan2(sin(th_f - th_r), cos(th_f - th_r));
 
 % ---------- 6) Speed ----------
 if isinf(d_min)
