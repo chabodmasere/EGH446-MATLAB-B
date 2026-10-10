@@ -44,9 +44,23 @@ robot.Theta = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Generate random waypoint locations
-occ = inflate_map(logical_map, 4);          % 0.25 m radius + 0.15 m margin
+% The planner works on grid points (x, y) = ((col-1)/10, (nRows-row)/10), which
+% are the CORNERS of the map cells. A grid point touches a wall if any of the
+% four cells meeting at it is occupied, so mark those first; inflating that
+% gives true distances to the wall faces.
+wall_pts = logical_map;
+wall_pts(:, 2:end)       = wall_pts(:, 2:end)       | logical_map(:, 1:end-1);
+wall_pts(1:end-1, :)     = wall_pts(1:end-1, :)     | logical_map(2:end, :);
+wall_pts(1:end-1, 2:end) = wall_pts(1:end-1, 2:end) | logical_map(2:end, 1:end-1);
 
-wp_list = wp_gen(x_max, y_max, no_wps, [robot.X, robot.Y], occ);
+% Required clearance is 0.25 m radius + 0.15 m = 0.40 m (4 cells). The extra
+% cells allow for path-tracking error and estimator noise.
+occ = inflate_map(wall_pts, 6);
+
+% Obstacle positions are used ONLY to keep waypoints off the obstacles
+% (brief: waypoints must not overlap obstacles). The path is still planned
+% on the empty map: occ contains walls only.
+wp_list = wp_gen(x_max, y_max, no_wps, [robot.X, robot.Y], occ, obstacles(:,1:2), 1.0);
 D = waypoint_distances([[robot.X, robot.Y]; wp_list], occ);
 [wp_ordered, dist_cum, history] = wp_antColony(wp_list, [robot.X,robot.Y], D);
 

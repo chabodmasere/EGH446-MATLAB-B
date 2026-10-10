@@ -24,9 +24,9 @@ function [theta_cmd_safe, v_scale, avoid_active, d_obs] = obstacle_avoidance(the
 %   d_obs          [1]  distance to nearest remembered obstacle ahead (inf if none)
 
 % ---------- Tuning: obstacles ----------
-d_inf   = 3.0;    % [m] start reacting to an obstacle at this range (far from goal)
+d_inf   = 2.00;   % [m] start reacting to an obstacle at this range (far from goal)
 d_stop  = 0.7;    % [m] range at which obstacle slow-down is strongest
-k_rep   = 1.5;    % push away from obstacle
+k_rep   = 1.00;   % push away from obstacle
 k_tan   = 1.0;    % slide along obstacle edge
 v_min   = 0.25;   % obstacle slow-down limit
 merge_r = 0.75;   % [m] same-obstacle merge distance
@@ -38,8 +38,8 @@ D_NEAR  = 0.7;    % [m] smallest obstacle reach; keeps centre >= ~0.45 m from ob
 
 % ---------- Tuning: walls (lidar) ----------
 scanAngles = linspace(-pi/2, pi/2, 13);   % MUST match the Lidar Sensor block
-d_wall  = 1.0;    % [m] walls closer than this push the robot away
-k_wall  = 0.8;    % wall push strength
+d_wall  = 1.20;   % [m] walls closer than this push the robot away
+k_wall  = 1.80;   % wall push strength
 
 % ---------- Tuning: smoothing ----------
 a_f     = 0.02;   % heading low-pass per step (block runs at 100 Hz -> ~0.5 s time constant)
