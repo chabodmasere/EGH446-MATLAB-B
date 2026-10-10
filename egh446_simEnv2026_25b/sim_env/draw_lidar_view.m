@@ -16,17 +16,17 @@ function draw_lidar_view(pose, ranges, scanAngles, scanPose)
 %
 %   Replaces the fan of dashed beam lines with a picture of what the lidar
 %   is actually telling the robot:
-%     SCAN FIELD   a translucent wedge covering the free space the scan has
-%                  swept; its outer edge is the surface the lidar sees
-%     RETURNS      a dot where each beam lands, coloured by range
-%                  (red = close, amber = caution, green = clear)
+%     SCAN FIELD   a glassy see-through wedge covering the free space the scan
+%                  has swept, nearly clear at the robot and thicker at the rim;
+%                  its outer edge is the surface the lidar sees
 %     MAPPED WALLS every return is remembered, so the walls the robot has
 %                  scanned build up behind it as an orange point cloud. The
 %                  Lidar Sensor block adds up to 0.45 m to every range, so
 %                  the cloud sits in a band just behind each wall face
 %     CLEARANCE    a ring on the robot's outline and a dotted line to the
 %                  nearest return, labelled with its distance; both take the
-%                  colour of that range
+%                  colour of that range (red = close, amber = caution,
+%                  green = clear)
 %     ARENA        the figure itself is restyled once per run to look like a
 %                  video-game level: dark tiled floor, neon-edged walls, and
 %                  the red/green/blue obstacles drawn as cherries, green
@@ -52,8 +52,10 @@ JUMP      = 2.0;     % [m] a pose jump this large means a new run: clear the map
 MAX_FPS   = 30;      % redraw cap so the overlay never slows the simulation
 
 % ---------- Look ----------
-FIELD_COL   = [0.30 0.92 1.00];    % bright cyan: reads on the dark arena floors
-FIELD_ALPHA = 0.30;
+FIELD_COL   = [0.72 0.95 1.00];    % pale icy blue, like a pane of glass
+FIELD_ALPHA = [0.01 0.08];         % opacity at the robot and at the rim: faint enough
+                                   % that the floor tiles show through
+RIM_ALPHA   = 0.45;                % thin outline that marks the edge of the glass
 MAP_COL     = [1.00 0.45 0.00];
 RAMP        = [0.86 0.10 0.10;    % close
                1.00 0.66 0.00;    % caution
@@ -81,7 +83,7 @@ if isempty(h) || ~isgraphics(h.ax) || h.ax ~= ax || ~isgraphics(h.field) ...
     if ~strcmp(ARENA_STYLE, 'off')
         style_arena(ax, ARENA_STYLE);
     end
-    h  = create_graphics(ax, FIELD_COL, FIELD_ALPHA, MAP_COL);
+    h  = create_graphics(ax, FIELD_COL, FIELD_ALPHA, RIM_ALPHA, MAP_COL);
     xl = ax.XLim;  yl = ax.YLim;
     st = struct('x0', xl(1), 'y0', yl(1), ...
                 'seen', false(ceil(diff(yl)/CELL) + 1, ceil(diff(xl)/CELL) + 1), ...
@@ -128,15 +130,17 @@ end
 st.tLast = t;
 
 % ---------- Scan field and the surface it ends on ----------
-set(h.field, 'XData', [x, bx], 'YData', [y, by]);
+nb = numel(bx);
+set(h.field, 'Vertices', [x, y; bx(:), by(:)], ...
+    'Faces', [ones(nb-1, 1), (2:nb)', (3:nb+1)'], ...
+    'FaceVertexAlphaData', [FIELD_ALPHA(1); FIELD_ALPHA(2)*ones(nb, 1)]);
+set(h.rim, 'XData', [x, bx, x], 'YData', [y, by, y]);
 sx = bx;  sy = by;
 sx(~hit) = NaN;  sy(~hit) = NaN;            % only draw the edge where something was seen
 set(h.surface, 'XData', sx, 'YData', sy);
 
-% ---------- Returns, coloured by range ----------
+% ---------- Nearest return, coloured by range ----------
 if any(hit)
-    set(h.returns, 'XData', bx(hit), 'YData', by(hit), ...
-        'FaceVertexCData', range_colour(r(hit), R_CLOSE, R_CLEAR, RAMP));
     [rmin, j] = min(r + ~hit*R_MAX);
     col = range_colour(rmin, R_CLOSE, R_CLEAR, RAMP);
     set(h.near, 'XData', [x, bx(j)], 'YData', [y, by(j)], 'Color', col);
@@ -144,7 +148,6 @@ if any(hit)
         'String', sprintf('nearest %.2f m', rmin));
 else
     col = RAMP(3, :);
-    set(h.returns, 'XData', NaN, 'YData', NaN, 'FaceVertexCData', col);
     set(h.near, 'XData', NaN, 'YData', NaN);
     set(h.label, 'String', '');
 end
@@ -163,7 +166,7 @@ c = [interp1([0 0.5 1], ramp(:,1), s), ...
 end
 
 % =====================================================================
-function h = create_graphics(ax, fieldCol, fieldAlpha, mapCol)
+function h = create_graphics(ax, fieldCol, fieldAlpha, rimAlpha, mapCol)
 % Builds every overlay object once. Low-level patch/line/text never clear
 % the axes, so there is no need to touch the axes' hold state.
 
@@ -173,19 +176,28 @@ common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
 delete(findobj(ax, 'Tag', 'lidarOverlay'));   % remove leftovers from old runs
 
 h.ax      = ax;
-h.field   = patch(ax, NaN, NaN, fieldCol, 'EdgeColor', 'none', ...
-                  'FaceAlpha', fieldAlpha, common{:});
+h.field   = patch(ax, 'Vertices', [NaN NaN], 'Faces', 1, 'FaceColor', fieldCol, ...
+                  'EdgeColor', 'none', 'FaceAlpha', 'interp', ...
+                  'AlphaDataMapping', 'none', 'FaceVertexAlphaData', fieldAlpha(1), ...
+                  common{:});     % triangle fan from the robot; alpha set per vertex
+h.rim     = line(ax, NaN, NaN, 'LineWidth', 0.75, 'Color', [fieldCol, rimAlpha], common{:});
 h.map     = line(ax, NaN, NaN, 'LineStyle', 'none', 'Marker', '.', ...
                  'MarkerSize', 7, 'Color', mapCol, common{:});
-h.surface = line(ax, NaN, NaN, 'LineWidth', 2.2, 'Color', fieldCol, common{:});
+h.surface = line(ax, NaN, NaN, 'LineWidth', 1.6, 'Color', fieldCol, common{:});
 h.near    = line(ax, NaN, NaN, 'LineStyle', ':', 'LineWidth', 1.4, common{:});
-h.returns = patch(ax, 'XData', NaN, 'YData', NaN, 'FaceColor', 'none', ...
-                  'EdgeColor', 'none', 'Marker', 'o', 'MarkerSize', 5, ...
-                  'MarkerFaceColor', 'flat', 'MarkerEdgeColor', [0.15 0.15 0.15], ...
-                  'FaceVertexCData', [0 0 0], common{:});
 h.ring    = line(ax, NaN, NaN, 'LineWidth', 1.5, common{:});
 h.label   = text(ax, NaN, NaN, '', 'FontWeight', 'bold', 'FontSize', 9, ...
                  'BackgroundColor', ax.Color, 'Margin', 1, common{:});
+
+% Put the scan field under everything except the map image, so obstacles,
+% waypoints and the path are drawn over the glass instead of behind it.
+shh = get(groot, 'ShowHiddenHandles');
+set(groot, 'ShowHiddenHandles', 'on');
+ch  = ax.Children;
+isImg = arrayfun(@(c) isa(c, 'matlab.graphics.primitive.Image'), ch);
+keep  = ch(~isImg & ch ~= h.field & ch ~= h.rim);
+ax.Children = [keep; h.rim; h.field; ch(isImg)];
+set(groot, 'ShowHiddenHandles', shh);
 
 th   = linspace(0, 2*pi, 48);
 h.cu = cos(th);
