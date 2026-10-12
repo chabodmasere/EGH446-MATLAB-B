@@ -166,9 +166,20 @@ function h = create_graphics(ax, fieldCol, fieldAlpha, mapCol)
 common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
           'PickableParts', 'none', 'Tag', 'lidarOverlay'};
 
-delete(findobj(ax, 'Tag', 'lidarOverlay'));   % remove leftovers from old runs
+delete(findall(ax, 'Tag', 'lidarOverlay'));   % remove leftovers from old runs (findall: handles are hidden)
 
 h.ax      = ax;
+
+% planned paths from mdl_robot, drawn first so they sit under the lidar
+% overlay. Plans are broken lines, the robot trajectory is the only solid
+% one: raw A* faint grey dotted, PSO-smoothed plan yellow dashed
+astar = base_path('astar_path');
+pso   = base_path('wp_plot');
+h.astar = line(ax, astar(:,1), astar(:,2), 'LineStyle', ':', 'LineWidth', 0.8, ...
+               'Color', [0.55 0.55 0.60], common{:});
+h.pso   = line(ax, pso(:,1), pso(:,2), 'LineStyle', '--', 'LineWidth', 1.5, ...
+               'Color', [1.00 0.85 0.20], common{:});
+
 h.field   = patch(ax, NaN, NaN, fieldCol, 'EdgeColor', 'none', ...
                   'FaceAlpha', fieldAlpha, common{:});
 h.map     = line(ax, NaN, NaN, 'LineStyle', 'none', 'Marker', '.', ...
@@ -186,6 +197,19 @@ h.label   = text(ax, NaN, NaN, '', 'FontWeight', 'bold', 'FontSize', 9, ...
 th   = linspace(0, 2*pi, 48);
 h.cu = cos(th);
 h.su = sin(th);
+end
+
+% =====================================================================
+function p = base_path(name)
+% Nx2 path from the base workspace, or NaN if mdl_robot didn't make it.
+p = [NaN NaN];
+try
+    v = evalin('base', name);
+    if size(v, 2) == 2
+        p = double(v);
+    end
+catch
+end
 end
 
 % =====================================================================

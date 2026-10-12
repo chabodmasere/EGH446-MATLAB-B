@@ -56,6 +56,7 @@ wall_pts(1:end-1, 2:end) = wall_pts(1:end-1, 2:end) | logical_map(2:end, 1:end-1
 % Required clearance is 0.25 m radius + 0.15 m = 0.40 m (4 cells). The extra
 % cells allow for path-tracking error and estimator noise.
 occ = inflate_map(wall_pts, 6);
+clr = clearance_field(wall_pts, 15);   % metres to nearest wall, for PSO
 
 % Obstacle positions are used ONLY to keep waypoints off the obstacles
 % (brief: waypoints must not overlap obstacles). The path is still planned
@@ -65,8 +66,15 @@ D = waypoint_distances([[robot.X, robot.Y]; wp_list], occ);
 [wp_ordered, dist_cum, history] = wp_antColony(wp_list, [robot.X,robot.Y], D);
 
 wp_route = [robot.X robot.Y; wp_ordered];
-[path, path_dist] = wp_path(wp_route, occ);
+% A* gives each leg's topology, PSO smooths it within that topology
+[astar_path, astar_dist, legs] = wp_path(wp_route, occ);
+[path, pso_info, pso_legs] = wp_swarm(legs, clr);
+path_dist = sum([pso_info.len_pso]);
 wp_plot = path;
+
+% online re-planning: the Replanner block re-plans legs around obstacles
+% the Object Detector finds, and hands Guidance the new path
+obstacle_replan('init', pso_legs, wp_route, clr);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Diagnostics
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,0 +1,106 @@
+function [theta_cmd, dist_to_wp, mission_complete, ...
+          wp_idx_out, capture_event, capture_error] = ...
+          fcn(wp_ordered, x_hat, wp_plot, rvwp_lookahead, capture_radius)
+%#codegen
+% GUIDANCE  Follow the A* path (wp_plot) and capture each waypoint in order.
+%   FIX 1: path progress (seg_idx) can never run past the waypoint being
+%          chased, so every waypoint (including the last) must be reached.
+%   FIX 2: on mission complete the sim is stopped from inside this block,
+%          and theta_cmd = theta, dist_to_wp = 0 hold the robot still.
+coder.extrinsic('bdroot', 'set_param');
+persistent wp_idx seg_idx wp_seg stop_sent
+N = size(wp_ordered, 1);
+M = size(wp_plot, 1);
+if isempty(wp_idx)
+    wp_idx    = 1;
+    seg_idx   = 1;
+    wp_seg    = locate_waypoints(wp_ordered, wp_plot);
+    stop_sent = false;
+end
+x = x_hat(1);
+y = x_hat(2);
+theta = x_hat(3);
+mission_complete = 0;
+capture_event = 0;
+capture_error = 0;
+if wp_idx > N
+    theta_cmd = theta;
+    dist_to_wp = 0;
+    mission_complete = 1;
+    wp_idx_out = N;
+    if ~stop_sent
+        stop_sent = true;
+        fprintf('Mission complete: all %d waypoints captured. Stopping.\n', int32(N));
+        set_param(bdroot, 'SimulationCommand', 'stop');
+    end
+    return;
+end
+wp_idx_out = wp_idx;
+wp_x = wp_ordered(wp_idx, 1);
+wp_y = wp_ordered(wp_idx, 2);
+dist_to_wp = sqrt((wp_x - x)^2 + (wp_y - y)^2);
+%% Advance along the path, but never past the current waypoint
+point_radius = 1.0;
+final_radius = 0.10;               % [m] the mission must END on the last waypoint
+seg_lim = wp_seg(wp_idx);          % path index of the waypoint being chased
+while seg_idx < seg_lim
+    d = sqrt((wp_plot(seg_idx,1) - x)^2 + (wp_plot(seg_idx,2) - y)^2);
+    if d < point_radius
+        seg_idx = seg_idx + 1;
+    else
+        break
+    end
+end
+%% Steer at the current path point (at the waypoint itself on the final approach)
+if seg_idx >= seg_lim
+    theta_cmd = atan2(wp_y - y, wp_x - x);
+else
+    theta_cmd = atan2(wp_plot(seg_idx,2) - y, wp_plot(seg_idx,1) - x);
+end
+%% Capture against the real waypoint
+cap = capture_radius;
+if wp_idx == N
+    cap = min(capture_radius, final_radius);
+end
+if dist_to_wp < cap
+    capture_event = 1;
+    capture_error = dist_to_wp;
+    if wp_idx == N
+        mission_complete = 1;
+        theta_cmd = theta;
+        dist_to_wp = 0;
+        wp_idx = N + 1;
+    else
+        wp_idx = wp_idx + 1;
+    end
+end
+end
+% =====================================================================
+function wp_seg = locate_waypoints(wp_ordered, wp_plot)
+% Index of the path point where each waypoint occurs, searching forward
+% in visiting order. A* snaps points to the grid, so each waypoint is
+% matched to the CLOSEST path point rather than an exact copy.
+N = size(wp_ordered, 1);
+M = size(wp_plot, 1);
+wp_seg = zeros(N, 1);
+near = 0.5;                        % [m] "close enough to be this waypoint"
+j0 = 1;
+for k = 1:N
+    best  = j0;
+    bestd = inf;
+    for j = j0:M
+        d = sqrt((wp_plot(j,1) - wp_ordered(k,1))^2 + ...
+                 (wp_plot(j,2) - wp_ordered(k,2))^2);
+        if d < bestd
+            bestd = d;
+            best  = j;
+        end
+        if bestd < near && d > bestd + near   % passed it, moving away
+            break
+        end
+    end
+    wp_seg(k) = best;
+    j0 = best;
+end
+wp_seg(N) = M;                     % the path always ends at the last waypoint
+end

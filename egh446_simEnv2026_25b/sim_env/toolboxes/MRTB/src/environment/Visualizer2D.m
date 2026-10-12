@@ -77,12 +77,6 @@ classdef Visualizer2D < matlab.System & matlab.system.mixin.CustomIcon
                 show(obj.map,'Parent',obj.ax);
             end
 
-            % Show the planned path
-            if evalin('base','exist(''wp_plot'',''var'')')
-                plannedPath = evalin('base','wp_plot');
-                plot(obj.ax, plannedPath(:,1), plannedPath(:,2), ...
-                     'g-', 'LineWidth', 1.5);
-            end
             
             % Initialize robot plot
             obj.OrientationHandle = plot(obj.ax,0,0,'r','LineWidth',1.5);
