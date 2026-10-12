@@ -25,8 +25,9 @@ function draw_lidar_view(pose, ranges, scanAngles, scanPose)
 %                  Lidar Sensor block adds up to 0.45 m to every range, so
 %                  the cloud sits in a band just behind each wall face
 %     CLEARANCE    a ring at the safety radius and a dotted line to the
-%                  nearest return, labelled with its distance; both take the
-%                  colour of that range
+%                  nearest return; both take the colour of that range
+%     KEY          a key beside the map naming every line and marker,
+%                  including the avoidance and re-planning overlays
 %     ARENA        the figure itself is restyled once per run to look like a
 %                  video-game level: dark tiled floor, neon-edged walls, and
 %                  the red/green/blue obstacles drawn as cherries, green
@@ -45,7 +46,7 @@ R_CLOSE   = 0.5;     % [m] range drawn fully red
 R_CLEAR   = 2.5;     % [m] range drawn fully green
 CELL      = 0.10;    % [m] mapped-wall resolution (one remembered point per cell)
 JUMP      = 2.0;     % [m] a pose jump this large means a new run: clear the map
-MAX_FPS   = 30;      % redraw cap so the overlay never slows the simulation
+MAX_FPS   = 10;      % redraw cap so the overlay never slows the simulation (was 30)
 
 % ---------- Look ----------
 FIELD_COL   = [0.00 0.62 0.72];
@@ -136,13 +137,10 @@ if any(hit)
     [rmin, j] = min(r + ~hit*R_MAX);
     col = range_colour(rmin, R_CLOSE, R_CLEAR, RAMP);
     set(h.near, 'XData', [x, bx(j)], 'YData', [y, by(j)], 'Color', col);
-    set(h.label, 'Position', [x + 0.9, y + 1.2, 0], 'Color', col, ...
-        'String', sprintf('nearest %.2f m', rmin));
 else
     col = RAMP(3, :);
     set(h.returns, 'XData', NaN, 'YData', NaN, 'FaceVertexCData', col);
     set(h.near, 'XData', NaN, 'YData', NaN);
-    set(h.label, 'String', '');
 end
 set(h.ring, 'XData', x + CLEARANCE*h.cu, 'YData', y + CLEARANCE*h.su, 'Color', col);
 
@@ -191,12 +189,92 @@ h.returns = patch(ax, 'XData', NaN, 'YData', NaN, 'FaceColor', 'none', ...
                   'MarkerFaceColor', 'flat', 'MarkerEdgeColor', [0.15 0.15 0.15], ...
                   'FaceVertexCData', [0 0 0], common{:});
 h.ring    = line(ax, NaN, NaN, 'LineWidth', 1.5, common{:});
-h.label   = text(ax, NaN, NaN, '', 'FontWeight', 'bold', 'FontSize', 9, ...
-                 'BackgroundColor', ax.Color, 'Margin', 1, common{:});
 
 th   = linspace(0, 2*pi, 48);
 h.cu = cos(th);
 h.su = sin(th);
+
+add_legend(ax, fieldCol, mapCol, common);
+end
+
+% =====================================================================
+function add_legend(ax, fieldCol, mapCol, common)
+% Key to everything drawn on the Robot Visualization axes, in its own
+% small axes to the right of the map. Each entry copies the look of the
+% real object, so the key also covers the overlays drawn by draw_avoid_view
+% and obstacle_replan. Colours that depend on the arena style are read
+% from the map axes.
+%
+% This is drawn by hand, not with legend(): a legend is laid out again on
+% every redraw of the figure, which slowed the animation noticeably.
+fig = ancestor(ax, 'figure');
+delete(findall(fig, 'Tag', 'arenaKey'));       % key from the previous run
+
+ink = ax.XColor;
+RED    = [0.95 0.15 0.20];     % draw_avoid_view
+VIOLET = [0.78 0.45 1.00];     % obstacle_replan
+PINK   = [1.00 0.45 0.72];     % kong waypoint sprites
+
+trailCol = [0 0 1];
+tr = findobj(ax, 'Type', 'line', 'Marker', '.', 'LineStyle', '-');
+if ~isempty(tr), trailCol = tr(1).Color; end
+
+mk = @(m, face, edge) {'LineStyle', 'none', 'Marker', m, 'MarkerSize', 8, ...
+                       'MarkerFaceColor', face, 'MarkerEdgeColor', edge, 'LineWidth', 1.2};
+
+key = {
+    {'Color', trailCol, 'LineWidth', 1.5},                              'Path driven'
+    {'Color', [1.00 0.85 0.20], 'LineStyle', '--', 'LineWidth', 1.5},   'Planned path (A* + PSO)'
+    {'Color', [0.55 0.55 0.60], 'LineStyle', ':', 'LineWidth', 0.8},    'Raw A* route'
+    {'Color', VIOLET, 'LineStyle', ':', 'LineWidth', 2.4},              'Re-planned path'
+    {'Color', VIOLET, 'LineStyle', '--', 'LineWidth', 1.0},             'Re-plan keep-out (0.8 m)'
+    {'Color', RED, 'LineWidth', 3.5},                                   'Avoidance active'
+    {'Color', RED, 'LineWidth', 2.2},                                   'Avoidance: heading commanded'
+    {'Color', [0.75 0.75 0.80], 'LineStyle', ':', 'LineWidth', 1.8},    'Avoidance: heading from guidance'
+    {'Color', RED, 'LineStyle', '--', 'LineWidth', 1.5},                'Avoidance: predicted arc'
+    {'Color', fieldCol, 'LineWidth', 6},                                'Lidar scan'
+    mk('.', mapCol, mapCol),                                            'Walls mapped by lidar'
+    mk('o', 'none', [1.00 0.66 0.00]),                                  'Clearance ring (0.40 m)'
+    };
+
+wp = findobj(ax, 'Type', 'line', 'Marker', 'x');
+if isempty(findall(ax, 'Tag', 'arenaFruit'))            % plain map: squares and crosses
+    key(end+1, :) = {mk('s', [0.6 0.6 0.6], ink), 'Obstacle'};
+elseif ~isempty(wp) && strcmp(wp(1).Visible, 'on')      % fruit styles keep the crosses
+    key(end+1, :) = {mk('o', [0.86 0.06 0.14], ink), 'Obstacle (fruit)'};
+else                                                    % kong
+    key(end+1, :) = {mk('o', [0.85 0.22 0.12], ink), 'Obstacle (barrel)'};
+    key(end+1, :) = {mk('o', PINK, ink), 'Waypoint (visiting order)'};
+    key(end+1, :) = {mk('^', PINK, ink), 'Final waypoint (HELP!)'};
+end
+if ~isempty(wp) && strcmp(wp(1).Visible, 'on')
+    key(end+1, :) = {{'LineStyle', 'none', 'Marker', 'x', 'MarkerSize', 8, ...
+                      'Color', wp(1).Color, 'LineWidth', 1.5}, 'Waypoint'};
+end
+
+% map on the left 3/4 of the figure, key in the strip to its right
+n = size(key, 1);
+set(ax, 'Units', 'normalized', 'Position', [0.05 0.09 0.70 0.85]);
+hgt = min(0.85, 0.036*(n + 1.5));
+kax = axes('Parent', fig, 'Units', 'normalized', ...
+           'Position', [0.775 0.09 + (0.85 - hgt)/2, 0.215 hgt], ...
+           'XLim', [0 1], 'YLim', [0 n + 1.5], 'YDir', 'reverse', ...
+           'XTick', [], 'YTick', [], 'Box', 'on', 'Color', ax.Color, ...
+           'XColor', ink, 'YColor', ink, 'LineWidth', 1, ...
+           'HandleVisibility', 'off', 'HitTest', 'off', 'PickableParts', 'none', ...
+           'Tag', 'arenaKey');
+text(kax, 0.5, 0.75, 'KEY', 'Color', ink, 'FontWeight', 'bold', 'FontSize', 9, ...
+     'FontName', ax.FontName, 'HorizontalAlignment', 'center');
+for k = 1:n
+    p = key{k, 1};
+    if any(strcmp(p, 'Marker'))
+        line(kax, 0.10, k + 0.75, p{:});
+    else
+        line(kax, [0.03 0.17], [k k] + 0.75, p{:});
+    end
+    text(kax, 0.22, k + 0.75, key{k, 2}, 'Color', ink, 'FontSize', 8, ...
+         'FontName', ax.FontName, 'VerticalAlignment', 'middle');
+end
 end
 
 % =====================================================================

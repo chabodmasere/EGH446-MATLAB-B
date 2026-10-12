@@ -19,17 +19,24 @@ ARROW     = 1.5;     % [m] arrow length
 HORIZON   = 2.5;     % [m] length of the intent arc
 CLEARANCE = 0.40;    % [m] robot radius + safety margin
 JUMP      = 2.0;     % [m] a pose jump this large means a new run
-MAX_FPS   = 30;
+MAX_FPS   = 10;     % redraw cap (was 30)
 RED       = [0.95 0.15 0.20];
 GREY      = [0.75 0.75 0.80];
 
 persistent h st
 
-fig = findobj('Type', 'figure', 'Tag', 'RobotVisualization');
-if isempty(fig), return; end
-ax = findobj(fig(1), 'Type', 'axes');
-if isempty(ax), return; end
-ax = ax(1);
+% Look the axes up only when the cached one has gone (the visualizer makes
+% new axes at the start of a run). This block runs at 100 Hz, and a figure
+% search on every call was slowing the simulation.
+if ~isempty(h) && isgraphics(h.ax)
+    ax = h.ax;
+else
+    fig = findobj('Type', 'figure', 'Tag', 'RobotVisualization');
+    if isempty(fig), return; end
+    ax = findobj(fig(1), 'Type', 'axes');
+    if isempty(ax), return; end
+    ax = ax(1);
+end
 
 x = pose(1);  y = pose(2);  th = pose(3);
 

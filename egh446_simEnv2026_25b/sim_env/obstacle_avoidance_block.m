@@ -24,7 +24,7 @@ function [theta_cmd_safe, v_scale, avoid_active, d_obs] = obstacle_avoidance(the
 %   d_obs          [1]  distance to nearest remembered obstacle ahead (inf if none)
 
 % ---------- Tuning: obstacles ----------
-d_inf   = 2.00;   % [m] start reacting to an obstacle at this range (far from goal)
+d_inf   = 0.80;   % [m] start reacting to an obstacle (backup: the Replanner steers around them)
 d_stop  = 0.7;    % [m] range at which obstacle slow-down is strongest
 k_rep   = 1.00;   % push away from obstacle
 k_tan   = 1.0;    % slide along obstacle edge
