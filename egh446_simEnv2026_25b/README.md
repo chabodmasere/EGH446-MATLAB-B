@@ -87,8 +87,8 @@ noise-free pose:
 
 ## Reproducing the report's results
 
-The batch and analysis scripts are in `analysis/` in the submission zip
-(`report/analysis` in the group repository):
+The batch and analysis scripts are in `report/analysis/` (next to this folder
+in the submission zip and in the group repository):
 
 - `batch_missions.m` (via `run_batch.sh`): runs seeded missions and logs the
   noise-free pose alongside the model's own signals
