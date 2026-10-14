@@ -46,17 +46,19 @@ with a 0.8 m keep-out around it. The potential field only acts as a close-range 
 
 ## Results
 
-Across 25 randomised missions:
+Across 25 seeded missions, measured against the simulator's noise-free pose:
 
-- every waypoint was captured, the last within 0.10 m
-- a 108 m mission took 119 s on average, at a 1.0 m/s speed limit
-- by the state estimate, the smallest clearance was 0.45 m from an obstacle and 0.40 m from a wall
-- with re-planning switched off, every test mission breached the obstacle clearance
+- every waypoint was captured in the optimal order; waypoints 1 to 4 were passed within 0.23 m and the last captured within 0.10 m
+- a 108 m mission took 123 s on average, at a 1.0 m/s speed limit
+- the smallest clearance was 0.58 m from an obstacle and 0.65 m from a wall (required 0.40 m)
+- with re-planning switched off, six of eight test missions breached the obstacle clearance
+- the Kalman filter's measurement noise is set from the sensor noise measured against the noise-free pose (0.10 m, 2 deg, 0.1 m/s)
 
 ## Running it
 
 Requires MATLAB with Simulink, Stateflow, Robotics System Toolbox and Navigation Toolbox.
-The model is saved for R2025b, with R2024b and R2023b copies alongside it.
+The model is saved in R2026a, with up-to-date copies exported for R2025b, R2024b and R2023b alongside it
+(`sl_groundvehicleDynamics.slx.r2025b`, `.slx.r2024b` and `sl_groundvehicleDynamics_23b.slx`).
 
 ```matlab
 cd egh446_simEnv2026_25b/sim_env
@@ -64,7 +66,9 @@ startupGround     % adds the toolboxes to the path and opens sl_groundvehicleDyn
 ```
 
 Then press **Run** in Simulink. The simulation stops itself once all waypoints are captured.
-`GettingStarted.mlx` in the same folder walks through the environment and the map key.
+`GettingStarted.mlx` in the same folder walks through the environment and the map key, and
+[`egh446_simEnv2026_25b/README.md`](egh446_simEnv2026_25b/README.md) summarises the subsystems,
+parameters and how to reproduce the report's results.
 
 ## Visualisation
 
