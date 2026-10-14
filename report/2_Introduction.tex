@@ -1,0 +1,190 @@
+% ============================================================
+% TITLE BLOCK (spans both columns), ABSTRACT & INDEX TERMS
+% ============================================================
+% \tbd{...} marks values still to be filled in (prints red).
+\providecommand{\tbd}[1]{\textcolor{red}{[#1]}}
+
+\twocolumn[{%
+    \centering
+    {\huge Path Planning and Onboard Obstacle Avoidance for an\\[2pt]
+    Autonomous Ground Robot among Unmapped Obstacles\par}
+    \vspace{1.2em}
+    {\large Chabod Masere (n10695141), Jonah Menzies (n11395168) and
+    Balin Carkeet (n11336692)\par}
+    \vspace{0.4em}
+    {\normalsize\itshape Group 50, School of Electrical Engineering and Robotics,
+    Queensland University of Technology\par}
+    \vspace{2em}
+}]
+
+% Unnumbered first-page note, as on an IEEE first page
+{\renewcommand{\thefootnote}{}\footnotetext{EGH446 Autonomous Systems, Major
+Project Part~B. Submitted to the unit coordinator, Dr Luis Mejias, October 2026.}}
+
+{\small\bfseries\emergencystretch=1em
+\noindent\hspace{1em}\textit{Abstract}---This report presents the design and
+evaluation of a navigation system that enables an autonomous ground robot to
+visit a set of randomly generated waypoints in an arena containing obstacles
+that are unknown in advance. Five waypoints are ordered using ant colony
+optimisation over true driving distances, joined by an A* route on a map
+inflated for clearance, and smoothed by particle swarm optimisation into a
+path the vehicle can track. Twelve obstacles are detected only through onboard
+sensing. When a detected obstacle lies near the remaining path, that part of
+the path is re-planned around it, and a reactive potential field acts as a
+close-range backup. Both layers are designed around a required clearance of
+$0.40$~m, the vehicle radius plus a safety margin.
+Across $25$ randomised missions the vehicle captured every waypoint,
+completing a $108$~m mission in $123$~s on average. Measured from the
+simulator's noise-free pose, it kept the required clearance in every
+mission, with a margin of at least $0.18$~m: the closest passes were
+$0.58$~m from an obstacle and $0.65$~m from a wall, and each waypoint
+was passed within $0.23$~m. The estimator's
+noise model was calibrated against the measured sensor noise, a
+standard deviation of $0.10$~m and $2^{\circ}$, and the clearance
+margins are sized against its $0.08$~m RMS position error.
+The results show that combining global planning with sensor-driven
+re-planning gives reliable navigation among obstacles that are not on the
+map, and that speed, not planning, sets the limit on mission time.
+
+\hspace{1em}\textit{Index Terms}---A* search, ant colony optimisation,
+autonomous ground robots, configuration space, Kalman filter, noise
+characterisation, obstacle avoidance, online re-planning, particle
+swarm optimisation, path planning, potential field.
+\par}
+\vspace{0.6em}
+
+% ============================================================
+% INTRODUCTION
+% ============================================================
+
+\section{Introduction}
+\label{sec:intro}
+
+\lettrine{A}{utonomous} ground robots are increasingly deployed in
+logistics, inspection, and industrial settings where they must travel
+between goal locations without human intervention. To do this reliably,
+a robot must know where it is, decide where to go next, and reach that
+location without colliding with its surroundings \cite{siegwart2011}.
+
+Part~A of this project addressed the first two of these problems in an
+obstacle-free field \cite{partA_est, partA_group}: the vehicle estimated
+its state and drove straight between ordered waypoints. Part~B adds
+walls, which are known from a map, and obstacles, which are not known in
+advance and can only be detected by onboard sensors as the vehicle
+moves. This turns a tracking problem into a planning problem. The
+waypoints must be ordered to keep the route short, a path must be found
+around the walls, and that path must be revised whenever a sensor
+reveals an obstacle on it. The mission should also be completed in the
+shortest time that safety allows.
+
+Section~\ref{sec:overview} defines the task and the architecture.
+Sections~\ref{sec:planning}--\ref{sec:guidance} detail path planning,
+collision avoidance, and guidance, Section~\ref{sec:results} reports the
+results, and Section~\ref{sec:conclusion} concludes.
+
+\subsection{Task and System Overview}
+\label{sec:overview}
+
+The arena is a $52 \times 41$~m walled map containing twelve static
+obstacles of radius $0.15$~m. The vehicle is an Ackermann-steered ground
+robot of radius $0.25$~m that starts at $(2, 2)$~m. Each mission places
+five waypoints at random in free space, at least $1.0$~m from every
+obstacle's centre. The vehicle must visit all of them and stop on the last one,
+keeping a margin of $0.15$~m between its body and every wall and
+obstacle. Its centre must therefore stay at least
+\begin{equation}
+    d_{\text{clear}} = 0.25 + 0.15 = 0.40\ \text{m}
+    \label{eq:clearance}
+\end{equation}
+from every wall face and obstacle surface, which is $0.55$~m from an
+obstacle's centre.
+
+Figure~\ref{fig:architecture} shows the architecture and
+Table~\ref{tab:io} the inputs, outputs and rate of each subsystem. The
+mission planner runs once, before the vehicle moves. During the mission
+the state estimator supplies the state estimate
+$\hat{\mathbf{x}} = [\hat{x}\ \hat{y}\ \hat{\theta}]^{\top}$, guidance
+turns the path into a heading command, the reactive avoidance layer
+adjusts it, and the controller converts it into speed and turn-rate
+commands. The re-planner watches the object detector and replaces the
+path when an obstacle is found near it.
+
+Beyond the planning and avoidance methods taught in the unit, the
+design adds four elements. (i) Waypoints are ordered by true driving
+distance, the length of the A* route between each pair, not by
+straight-line distance. (ii) Each A* leg is smoothed by PSO into a
+B-spline that respects the vehicle's turning radius, with a fallback
+that guarantees smoothing never reduces clearance. (iii) Obstacles are
+remembered, filtered and confirmed before they are trusted, and the
+re-planner tries a wider keep-out first, so that it routes around the
+open side of an obstacle rather than through a gap beside a wall.
+(iv) The estimator's noise model is measured from the simulator's
+noise-free pose rather than assumed, and every margin in the design is
+sized against the resulting estimate error. Where possible, each
+element is compared with a simpler alternative in the sections that
+follow.
+
+\begin{figure*}[t]
+    \centering
+    \begin{tikzpicture}[
+        font=\small,
+        node distance=0.9cm and 0.75cm,
+        blk/.style={draw, rounded corners=2pt, minimum height=0.95cm,
+                    minimum width=2.2cm, align=center, fill=black!4},
+        new/.style={blk, fill=CoverGold!22},
+        sen/.style={blk, minimum width=1.9cm, fill=white},
+        arr/.style={-{Stealth[length=2mm]}, semithick},
+        lab/.style={font=\scriptsize, inner sep=1.5pt}]
+
+        % forward path
+        \node[new] (plan) {Mission planner\\[-1pt]\scriptsize ACO, A*, PSO};
+        \node[blk, right=of plan]  (guid) {Guidance};
+        \node[new, right=of guid]  (avoid) {Reactive\\avoidance};
+        \node[blk, right=of avoid] (ctrl) {Controller};
+        \node[blk, right=of ctrl]  (veh)  {Vehicle};
+
+        % feedback and sensing
+        \node[blk, below=1.5cm of veh]   (est)  {State\\estimator};
+        \node[new, below=1.5cm of guid]  (rep)  {Re-planner};
+        \node[sen, below=1.5cm of avoid] (det)  {Object\\detector};
+        \node[sen, above=0.8cm of avoid] (lid)  {Lidar};
+
+        \draw[arr] (plan) -- node[lab, above] {path} (guid);
+        \draw[arr] (guid) -- node[lab, above] {$\theta_{\text{cmd}}$} (avoid);
+        \draw[arr] (avoid) -- node[lab, above] {$\theta_{\text{safe}}$}
+                              node[lab, below] {$v_{\text{scale}}$} (ctrl);
+        \draw[arr] (ctrl) -- node[lab, above] {$v,\ \omega$} (veh);
+
+        \draw[arr] (veh) -- node[lab, left, align=right] {noisy pose,\\speed} (est);
+        \draw[arr] (est.west) -- ++(-1.5,0)
+              node[lab, left, align=right] {$\hat{\mathbf{x}}$ to\\all blocks};
+        \draw[arr] (det) -- (rep);
+        \draw[arr] (rep) -- node[lab, right] {new path} (guid);
+        \draw[arr] (det) -- node[lab, right] {detections} (avoid);
+        \draw[arr] (lid) -- node[lab, right] {ranges} (avoid);
+    \end{tikzpicture}
+    \caption{System architecture. Shaded blocks are new in Part~B. The
+    state estimate $\hat{\mathbf{x}}$ is an input to guidance, reactive
+    avoidance, the controller and the re-planner; those four connections
+    are drawn as one arrow for clarity.}
+    \label{fig:architecture}
+\end{figure*}
+
+\begin{table*}[t]
+    \centering
+    \caption{Subsystem Inputs and Outputs}
+    \label{tab:io}
+    \footnotesize
+    \begin{tabularx}{\textwidth}{@{}l X X l@{}}
+        \toprule
+        \textbf{Subsystem} & \textbf{Inputs} & \textbf{Outputs} & \textbf{Rate} \\
+        \midrule
+        Mission planner    & Wall map, start pose, five waypoints & Waypoint order, path & Once, before the mission \\
+        State estimator    & Noisy pose and speed & State estimate $\hat{\mathbf{x}}$ & 100 Hz \\
+        Guidance           & Path, waypoint order, $\hat{\mathbf{x}}$ & Heading command $\theta_{\text{cmd}}$, distance to waypoint $d_{\text{wp}}$, waypoint index & 100 Hz \\
+        Re-planner         & $\hat{\mathbf{x}}$, detections, waypoint index & Replacement path & 100 Hz; re-plans at most once per second \\
+        Reactive avoidance & $\theta_{\text{cmd}}$, $\hat{\mathbf{x}}$, detections, lidar ranges, $d_{\text{wp}}$ & Safe heading $\theta_{\text{safe}}$, speed factor $v_{\text{scale}}$ & 100 Hz \\
+        Controller         & $\theta_{\text{safe}}$, $\hat{\theta}$, $d_{\text{wp}}$, $v_{\text{scale}}$ & Speed $v$ and turn-rate $\omega$ commands & 100 Hz \\
+        \bottomrule
+    \end{tabularx}
+\end{table*}

@@ -1,0 +1,43 @@
+% ============================================================
+% CONCLUSION
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This report presented a navigation system that takes a ground robot
+through five random waypoints in a walled arena containing obstacles it
+can only discover with its own sensors. The mission is planned on the
+known walls: ant colony optimisation orders the waypoints by driving
+distance, A* routes each leg on a map inflated for clearance, and
+particle swarm optimisation smooths each leg towards the vehicle's
+turning limit. During the mission, detected obstacles are remembered
+and the remaining path is re-planned around them, with a reactive
+potential field as a close-range backup. The Part~A estimator,
+controller and waypoint optimiser were reused, and guidance was
+extended to follow a path that can change during the mission.
+
+Over $25$ random missions the vehicle captured every waypoint, passing
+each within $0.23$~m, and, by the simulator's noise-free pose, never
+came closer than $0.58$~m to an obstacle or $0.65$~m to a wall, a
+margin of at least $0.18$~m over the required $0.40$~m. Re-planning is
+what kept the obstacle clearance: with it switched off, six of eight
+test missions breached it. Logging the noise-free pose also allowed the
+sensor noise to be measured rather than assumed. It is zero-mean and
+Gaussian with a standard deviation of $0.10$~m and $2^{\circ}$, and
+recalibrating the Kalman filter to it made the filter consistent
+without loss of accuracy. A mission took $123$~s on average, and of
+the three speed limits tested, $1.0$~m/s was the fastest that kept the
+clearance.
+
+The main limitation is the trade between speed and margin. At
+$1.5$~m/s the mission was $23$\% faster but one test mission breached
+the clearance, because the vehicle cannot follow curves planned for a
+$1.0$~m turn radius at that speed, and its own estimate can be over
+$0.1$~m from the truth near an obstacle. Planning for a turn radius
+that grows with the speed limit, and margins that grow with the
+estimator's uncertainty, would allow a faster mission without losing
+the margin. Two further limits apply outside simulation: obstacles are
+assumed static, and each re-plan takes up to $0.65$~s that the
+simulation does not charge for. An incremental planner such as D* Lite
+\cite{koenig2002}, which repairs the previous search instead of
+repeating it, would address the second.

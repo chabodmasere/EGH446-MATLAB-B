@@ -1,0 +1,210 @@
+% ============================================================
+% COLLISION AVOIDANCE  (Requirement 4c)
+% ============================================================
+\section{Collision Avoidance}
+\label{sec:avoidance}
+
+\subsection{Working Principle}
+Obstacles are avoided in two layers (Fig.~\ref{fig:layers}). The first
+is deliberative: when an obstacle is detected near the path still to be
+driven, that part of the path is planned again around it. The second is
+reactive: a potential field \cite{khatib1986} steers the vehicle away
+from any obstacle whose centre comes within $0.8$~m. Re-planning does most of
+the work because it acts early and keeps the guarantees of the planner;
+the reactive layer covers what re-planning cannot, such as an obstacle
+confirmed too late. Neither layer reads the obstacle list. Every
+obstacle position they use comes from the onboard detector.
+
+\begin{figure}[!t]
+    \centering
+    \begin{tikzpicture}[
+        font=\footnotesize,
+        node distance=0.38cm,
+        io/.style={align=center, inner sep=1pt},
+        st/.style={draw, rounded corners=2pt, minimum height=0.6cm,
+                   text width=3.4cm, align=center, fill=black!4},
+        arr/.style={-{Stealth[length=1.8mm]}, semithick}]
+        % layer 1
+        \node[io, text width=3.5cm] (i1) {detections, $\hat{\mathbf{x}}$,\\waypoint index};
+        \node[st, below=of i1] (m)  {Remember and confirm obstacles};
+        \node[st, below=of m]  (t)  {Leg within $1.0$~m\\of an obstacle?};
+        \node[st, below=of t]  (r)  {A* and PSO with\\obstacle keep-outs};
+        \node[io, below=of r, text width=3.5cm] (o1) {new path,\\to guidance};
+        \draw[arr] (i1) -- (m);  \draw[arr] (m) -- (t);
+        \draw[arr] (t) -- (r);   \draw[arr] (r) -- (o1);
+        % layer 2
+        \node[io, text width=3.5cm, right=0.5cm of i1] (i2) {$\theta_{\text{cmd}}$, detections,\\lidar ranges, $d_{\text{wp}}$};
+        \node[st, below=of i2] (p)  {Attraction plus obstacle and wall repulsion};
+        \node[st, below=of p]  (f)  {Low-pass filter\\on heading};
+        \node[st, below=of f]  (s)  {Speed factor};
+        \node[io, below=of s, text width=3.5cm] (o2) {$\theta_{\text{safe}}$, $v_{\text{scale}}$,\\to controller};
+        \draw[arr] (i2) -- (p);  \draw[arr] (p) -- (f);
+        \draw[arr] (f) -- (s);   \draw[arr] (s) -- (o2);
+        \node[above=0.1cm of i1, font=\footnotesize\bfseries] {Layer 1: re-planning};
+        \node[above=0.1cm of i2, font=\footnotesize\bfseries] {Layer 2: reactive};
+    \end{tikzpicture}
+    \caption{The two avoidance layers: inputs, stages and outputs.}
+    \label{fig:layers}
+\end{figure}
+
+\textbf{Layer 1: online re-planning.} The re-planner runs at $100$~Hz.
+\begin{enumerate}
+    \item \textit{Remember.} Each detection is converted to a world
+    position with Eq.~\eqref{eq:detection}. A detection within $0.75$~m
+    of a known obstacle updates that obstacle's position with a
+    first-order filter; any other starts a new obstacle.
+    \item \textit{Confirm.} An obstacle is trusted once it has been
+    seen on $20$ re-planner steps ($0.2$~s, two or three detector updates).
+    \item \textit{Trigger.} A leg is re-planned if the part still to be
+    driven passes within $1.0$~m of a confirmed obstacle's centre. Re-planning
+    runs at most once per second, and only when an obstacle is new or
+    its position has moved by more than $0.3$~m.
+    \item \textit{Re-plan.} Each confirmed obstacle is added to the
+    planner's clearance field as a keep-out disc of radius $0.8$~m about
+    its centre, which the planner treats like an inflated wall. A*
+    routes the leg again, from the vehicle's position for the leg in
+    progress, and PSO smooths it. A* first tries a $1.0$~m keep-out, so
+    that it prefers the open side of an obstacle to a gap between the
+    obstacle and a wall.
+    \item \textit{Hand over.} The new path is published to guidance.
+\end{enumerate}
+The $0.8$~m keep-out is the required $0.55$~m from an obstacle's centre
+plus $0.25$~m for detection error and corner cutting.
+Figure~\ref{fig:replan} shows a re-plan.
+
+\begin{figure}[!t]
+    \centering
+    \reportfig{fig_replan.png}
+    \caption{A re-plan in mission 9. The diamond marks the vehicle's
+    position when the obstacle was confirmed; the vehicle then follows
+    the re-planned path outside the keep-out.}
+    \label{fig:replan}
+\end{figure}
+
+\textbf{Layer 2: reactive avoidance.} The guidance heading is treated
+as a unit attraction vector in the body frame. Each remembered obstacle
+at range $\rho_{o}$ and bearing $\phi_{o}$ from the vehicle, closer than
+the reach $d_{r} = 0.8$~m, adds a repulsion of magnitude
+\begin{equation}
+    w_{o} = k_{\text{rep}}\left(\frac{1}{\rho_{o}} - \frac{1}{d_{r}}\right)
+    \label{eq:repulsion}
+\end{equation}
+directed away from it, and a tangential term of magnitude
+$w_{o}k_{\text{tan}}\cos\phi_{o}$ that slides the vehicle around the
+obstacle on the side the guidance heading points to. The side is chosen
+once per encounter and held, which prevents oscillation in front of an
+obstacle. Obstacles more than $108^{\circ}$ off the heading have been
+passed and are ignored.
+Each lidar beam shorter than $1.2$~m adds a repulsion of the same form,
+with gain $k_{\text{wall}}$, away from the wall it hit. The gains are
+$k_{\text{rep}} = k_{\text{tan}} = 1.0$ and $k_{\text{wall}} = 1.8$. The
+heading of the summed vector is low-pass filtered with a time constant
+of about $0.5$~s and sent to the controller as $\theta_{\text{safe}}$,
+with a speed factor $v_{\text{scale}} \in [0.3, 1]$ that slows the
+vehicle near an obstacle and in sharp turns. The lower limit is not
+zero because a steered vehicle must keep moving to turn.
+
+\subsection{Sensor Configuration and Obstacle Detection}
+Two sensors are used, both at the vehicle's centre with a range of
+$5$~m (Fig.~\ref{fig:sensing}). The lidar has $13$ beams over
+$180^{\circ}$, updates at $20$~Hz, sees walls only, and is used for the
+wall repulsion. The object detector has a $120^{\circ}$ field of view,
+updates at $10$~Hz, and returns the range $\rho$, bearing $\phi$ and
+label of up to three obstacles. A detection is placed in the world
+frame from the state estimate:
+\begin{equation}
+\begin{aligned}
+    x_{o} &= \hat{x} + \rho\cos(\hat{\theta} + \phi), \\
+    y_{o} &= \hat{y} + \rho\sin(\hat{\theta} + \phi).
+\end{aligned}
+\label{eq:detection}
+\end{equation}
+Any error in the estimate therefore becomes an error in the obstacle's
+position. Filtering repeated detections reduces that error, and the
+margin in the keep-out absorbs what remains. Table~\ref{tab:distances}
+collects the distances used by both layers.
+
+\begin{figure}[!t]
+    \centering
+    \begin{tikzpicture}[scale=0.56, font=\scriptsize]
+        % lidar half-disc (180 deg, 5 m) and its 13 beams
+        \fill[black!6] (0,0) -- (0,-5) arc[start angle=-90, end angle=90, radius=5] -- cycle;
+        \foreach \a in {-90,-75,...,90}
+            \draw[black!35, very thin] (0,0) -- (\a:5);
+        % detector cone (120 deg, 5 m)
+        \fill[CoverGold!35, opacity=0.7] (0,0) -- (-60:5) arc[start angle=-60, end angle=60, radius=5] -- cycle;
+        \draw[CoverGold!80!black] (0,0) -- (-60:5) arc[start angle=-60, end angle=60, radius=5] -- cycle;
+        % heading, obstacle, range and bearing
+        \draw[-{Stealth[length=1.6mm]}, semithick] (0,0) -- (0:5.9) node[right] {heading};
+        \fill[red!70!black] (35:3.6) circle[radius=0.15];
+        \draw[red!70!black] (35:3.6) circle[radius=0.55];
+        \draw[violet, dashed] (35:3.6) circle[radius=0.8];
+        \draw[semithick] (0,0) -- node[above, sloped] {$\rho$} (35:3.6);
+        \draw (0:1.5) arc[start angle=0, end angle=35, radius=1.5];
+        \node at (17:1.85) {$\phi$};
+        % vehicle
+        \fill[white] (0,0) circle[radius=0.25];  \draw[semithick] (0,0) circle[radius=0.25];
+        \node[align=left, anchor=west] at (0.4,-4.4) {lidar: $180^{\circ}$, 13 beams};
+        \node[align=left, anchor=west] at (2.7,-2.9) {detector: $120^{\circ}$};
+    \end{tikzpicture}
+    \caption{Sensing geometry to scale. An obstacle is shown with its
+    clearance ring (solid, $0.55$~m from its centre) and its keep-out
+    (dashed, $0.8$~m).}
+    \label{fig:sensing}
+\end{figure}
+
+\begin{table}[!t]
+    \centering
+    \caption{Distances Used by the Two Layers}
+    \label{tab:distances}
+    \footnotesize
+    \begin{tabularx}{\columnwidth}{@{}c l >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Value} & \textbf{From} & \textbf{Purpose} \\
+        \midrule
+        0.40 m & wall face         & Required clearance \\
+        0.55 m & obstacle centre   & Required clearance ($0.40 + 0.15$) \\
+        0.75 m & obstacle centre   & Detections merged into one obstacle \\
+        1.0 m  & obstacle centre   & Path this close triggers a re-plan \\
+        0.8 m  & obstacle centre   & Keep-out for A* and PSO \\
+        0.8 m  & obstacle centre   & Reactive reach $d_{r}$ \\
+        0.7 m  & obstacle centre   & Smallest reach, near a waypoint \\
+        1.2 m  & wall face         & Lidar repulsion starts ($0.5$~m near a waypoint) \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Integration with the Guidance Subsystem}
+The two layers meet guidance at different points
+(Fig.~\ref{fig:architecture}). The re-planner acts on the \emph{input} of guidance:
+it replaces the path that guidance follows, and guidance continues with
+the same logic on the new path. No mode switch is needed, and the
+waypoints are never changed. The reactive layer acts on the
+\emph{output} of guidance: it sits between guidance and the controller and modifies
+the heading command and the speed.
+
+The reactive layer also hands control back without a switch. When no
+obstacle is within reach, its obstacle repulsion is zero and its output
+is the guidance heading, filtered and adjusted only by any wall
+repulsion. Near a waypoint the reach shrinks to the distance to the
+waypoint, though never below $0.7$~m, and the tangential term fades in
+proportion, so an obstacle beside a waypoint cannot hold the vehicle
+away from it.
+
+\subsection{Limitations}
+\textit{Field of view.} An obstacle is known only once it has been
+inside the $120^{\circ}$, $5$~m cone, so one just around a corner is
+detected late and leaves the reactive layer little room.
+\textit{Static obstacles.} A remembered obstacle is never forgotten and
+its position is averaged, so obstacles are assumed not to move.
+\textit{Estimate error.} Obstacle positions inherit the error of the
+state estimate. The margins are sized against its measured
+distribution (Section~\ref{sec:estimator}) but are fixed; they do not
+shrink or grow with the filter's covariance during a mission. \textit{Local minima.} The reactive layer can stall where
+repulsion balances attraction, for example in a gap narrower than the
+keep-out; re-planning removes most such cases by routing round the open
+side. \textit{Computation.} A re-plan took $0.20$~s to compute on
+average and up to $0.65$~s over the $25$ missions of
+Section~\ref{sec:results}. The simulation clock waits for it, so it is
+not counted in the mission time; a real vehicle would travel up to
+about $0.6$~m on the old path first.

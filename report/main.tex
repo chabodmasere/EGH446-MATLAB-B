@@ -1,0 +1,104 @@
+\documentclass[10pt]{report}
+
+% ============================================================
+% PAGE SETUP
+% ============================================================
+% IEEE journal layout: narrow side margins, two columns 0.25 in apart
+\usepackage[a4paper, top=0.75in, bottom=1in, left=0.625in, right=0.625in, columnsep=0.25in]{geometry}
+
+% ============================================================
+% CORE PACKAGES
+% ============================================================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[australian]{babel}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{newtxtext,newtxmath}   % Times, as in IEEE journals (after amsmath)
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}   % needed for right=of / Stealth arrows
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{cite}
+\usepackage{lettrine}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}   % keep last
+
+\graphicspath{{Images/}}
+
+% Report figure: \reportfig{file.png} includes Images/file.png at column
+% width, or draws a labelled box if the file has not been uploaded yet.
+\newcommand{\reportfig}[2][\columnwidth]{%
+    \IfFileExists{Images/#2}%
+        {\includegraphics[width=#1]{Images/#2}}%
+        {\fbox{\parbox[c][4cm][c]{0.9\columnwidth}{\centering\small Upload \texttt{Images/\detokenize{#2}}}}}}
+
+% ============================================================
+% COLOURS
+% ============================================================
+\definecolor{CoverGold}{RGB}{184,134,11}
+
+% ============================================================
+% SECTION FORMATTING
+% ============================================================
+% Use numbered \section{...} in each chapter file (not \section*),
+% so the section counter steps and subsections restart at a. each time.
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\thesection-\Alph{subsection}}
+
+% IEEE style: "I. Introduction" centred in small capitals, "A. Subsection" in italics
+\titleformat{\section}{\centering\normalfont\normalsize\scshape}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\itshape}{\Alph{subsection}.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.0ex plus 0.2ex minus 0.2ex}{0.8ex}
+\titlespacing*{\subsection}{0pt}{0.8ex plus 0.2ex minus 0.2ex}{0.5ex}
+
+% ============================================================
+% CAPTION FORMATTING
+% ============================================================
+\renewcommand{\tablename}{TABLE}
+\renewcommand{\thetable}{\Roman{table}}
+\captionsetup[table]{name=TABLE, position=above, justification=centering, singlelinecheck=false,
+    font=footnotesize, labelfont=sc, textfont=sc, labelsep=newline, skip=4pt}
+\captionsetup[figure]{name=Fig., position=below, justification=justified, singlelinecheck=true,
+    font=footnotesize, labelsep=period, skip=4pt}
+
+% ============================================================
+% HEADER / FOOTER
+% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{EGH446 Autonomous Systems \;|\; Semester 2, 2026 \;|\; \copyright\ QUT}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+\begin{document}
+
+% No cover page: the title block at the top of 2_Introduction is the first
+% page, as in an IEEE journal paper. (1_Cover_page.tex is kept but unused.)
+
+% Each file below should open with a numbered section and a label:
+%   2_Introduction        \section{INTRODUCTION}        \label{sec:intro}
+%   3_Path_Planning       \section{PATH PLANNING}       \label{sec:planning}
+%   4_Collision_Avoidance \section{COLLISION AVOIDANCE} \label{sec:avoidance}
+%   5_Guidance_System     \section{GUIDANCE SYSTEM}     \label{sec:guidance}
+%   6_Conclusion          \section{CONCLUSION}          \label{sec:conclusion}
+%   7_References          \section*{REFERENCES}  (unnumbered)
+\input{2_Introduction}
+\input{3_Path_Planning}
+\input{4_Collision_Avoidance}
+\input{5_Guidance_System}
+\input{6_Conclusion}
+\input{7_References}
+
+\end{document}

@@ -1,8 +1,10 @@
-function obstacle_replan(cmd, varargin)
+function varargout = obstacle_replan(cmd, varargin)
 %OBSTACLE_REPLAN  Re-plan the path around obstacles seen by the Object Detector.
 %
 %   obstacle_replan('init', legs, wp_route, clr)      from mdl_robot
 %   obstacle_replan('step', x_hat, detections, wp_idx) from the Replanner block
+%   t = obstacle_replan('stats')                       computation time [s] of
+%                                                      every re-plan this run
 %
 %   Detections are turned into world positions and remembered. Once an
 %   obstacle is confirmed, any remaining leg that passes within TRIGGER of it
@@ -31,7 +33,8 @@ function obstacle_replan(cmd, varargin)
             [legs, route, clr] = varargin{:};
             S = struct('legs', {legs}, 'route', route, 'clr', clr, ...
                        'obs', zeros(0, 2), 'hits', zeros(0, 1), 'used', zeros(0, 2), ...
-                       'calls', 0, 'last', -inf, 'n', 0, 'mod', false(numel(legs), 1));
+                       'calls', 0, 'last', -inf, 'n', 0, 'mod', false(numel(legs), 1), ...
+                       'cpu', zeros(0, 1));
             path_store('reset');
 
         case 'step'
@@ -51,7 +54,17 @@ function obstacle_replan(cmd, varargin)
             end
             S.used = conf;
             S.last = S.calls;
-            S = replan(S, x_hat, round(wp_idx), conf, TRIGGER, OBS_CLR, OBS_WIDE);
+            t0 = tic;
+            [S, changed] = replan(S, x_hat, round(wp_idx), conf, TRIGGER, OBS_CLR, OBS_WIDE);
+            if changed
+                S.cpu(end+1, 1) = toc(t0);
+            end
+
+        case 'stats'
+            varargout{1} = zeros(0, 1);
+            if ~isempty(S)
+                varargout{1} = S.cpu;
+            end
     end
 end
 
@@ -87,7 +100,7 @@ function tf = is_new(conf, used, move)
 end
 
 % =====================================================================
-function S = replan(S, x_hat, wp_idx, conf, trigger, obs_clr, obs_wide)
+function [S, changed] = replan(S, x_hat, wp_idx, conf, trigger, obs_clr, obs_wide)
     N  = numel(S.legs);
     i0 = min(max(wp_idx, 1), N);
     robot = x_hat(1:2)';
@@ -148,7 +161,8 @@ function S = replan(S, x_hat, wp_idx, conf, trigger, obs_clr, obs_wide)
         restart = restart || i == i0;
     end
 
-    if isempty(done)
+    changed = ~isempty(done);
+    if ~changed
         return
     end
 

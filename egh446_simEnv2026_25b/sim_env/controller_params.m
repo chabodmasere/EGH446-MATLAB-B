@@ -23,7 +23,7 @@ heading_speed_min = 0.1;
 
 % RVWP guidance
 rvwp_lookahead = 5;        % see note below: try 3 if it cuts corners near walls
-capture_radius = 0.8;
+capture_radius = 0.4;      % [m] waypoints 1-4 (was 0.8: see report, Speed and capture radius)
 
 % Heading PID controller
 %K_i = 0;

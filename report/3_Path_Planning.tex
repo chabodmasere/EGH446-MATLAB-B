@@ -1,0 +1,161 @@
+% ============================================================
+% PATH PLANNING  (Requirement 4b)
+% ============================================================
+\section{Path Planning}
+\label{sec:planning}
+
+The planner runs once, before the vehicle moves, in five stages: inflate
+the walls, route every pair of points with A* to obtain driving
+distances, order the waypoints, route each leg in that order, and smooth
+each leg with particle swarm optimisation (PSO). As the task requires,
+it receives only the wall map and has no knowledge of the obstacles. The
+obstacle list is read only when the random waypoints are drawn, to keep
+them clear of obstacles; Fig.~\ref{fig:replan} shows a planned path
+that runs inside the keep-out of an obstacle it did not know. Obstacles are
+handled during the mission (Section~\ref{sec:avoidance}).
+
+\subsection{Map Inflation}
+Growing every wall by $d_{\text{clear}}$ lets the vehicle be planned as
+a point in configuration space \cite{lozanoperez1983, lavalle2006}. The
+map is an occupancy grid with $0.1$~m cells, and the planner searches
+over the cell corners. Each wall cell is therefore first extended to the
+four corners it touches, so that distances from those corners are true
+distances from the wall faces. The walls are grown by $0.60$~m (six cells), not
+$0.40$~m. The extra $0.20$~m is a tracking margin: the path is followed
+from a noisy state estimate, and a path planned at exactly $0.40$~m
+would breach the clearance with any tracking error.
+
+\subsection{Working Principle}
+\textbf{Routing.} Each leg is routed with A* \cite{hart1968} on the
+inflated grid. A* expands the grid point with the lowest
+\begin{equation}
+    f(n) = g(n) + h(n),
+    \label{eq:astar}
+\end{equation}
+where $g(n)$ is the path length from the start to point $n$ and $h(n)$
+is the straight-line distance from $n$ to the goal. Points are
+eight-connected. Because $h$ never overestimates the remaining distance,
+the first path to reach the goal is the shortest one on the grid.
+
+\textbf{Smoothing.} An A* path is made of straight runs joined at
+$45^{\circ}$ corners and hugs the inflated walls (Fig.~\ref{fig:plan});
+a steered vehicle cannot follow it. Each leg is therefore replaced by
+a cubic B-spline whose control points start on the A* path, one per
+metre, and may each move up to $1.0$~m sideways. A* fixes which way
+round the walls a leg goes; PSO \cite{kennedy1995} only reshapes the
+curve within that corridor. A particle is the vector of sideways
+offsets, and the swarm minimises a cost evaluated along the curve,
+\begin{equation}
+\begin{aligned}
+    J = \int \Big[\, 1 &+ k_{\kappa}\kappa^{2}
+      + k_{t}\,\big(|\kappa| - \kappa_{\max}\big)_{+}^{2} \\
+      &+ k_{s}\,\big(c_{s} - c\big)_{+}^{2}
+      + k_{h}\,\big(c_{h} - c\big)_{+} \Big]\, ds,
+\end{aligned}
+\label{eq:psocost}
+\end{equation}
+where $s$ is arc length, so the first term is the path length, $\kappa$
+is the curvature, $c$ is the distance to the nearest wall read from the
+clearance field, and $(\cdot)_{+} = \max(0,\cdot)$. The second term
+favours gentle curves, the third penalises any turn tighter than the
+minimum radius, $\kappa_{\max} = 1/r_{\min}$ with $r_{\min} = 1.0$~m,
+and the last two penalise coming within a soft clearance
+$c_{s} = 0.90$~m of a wall and, far more heavily, within the hard
+clearance $c_{h} = 0.60$~m. One particle starts with zero
+offsets, so the A* path is always among the candidates, and a leg whose
+best curve still breaches $c_{h}$ falls back to its A* path. Smoothing
+can therefore never make a leg less safe than the route it started from.
+
+\begin{figure}[!t]
+    \centering
+    \reportfig{fig_plan.png}
+    \caption{Planned mission: A* route and smoothed path. Waypoints are
+    numbered in visiting order.}
+    \label{fig:plan}
+\end{figure}
+
+\subsection{Parameters}
+Table~\ref{tab:planner} lists the planner parameters. The curvature
+limit follows from the controller limits of Section~\ref{sec:guidance}:
+the tightest turn the vehicle can hold is the speed limit over the
+turn-rate limit, $v_{\max}/\omega_{\max} = 0.80$~m, and $r_{\min} = 1.0$~m
+leaves turn rate in reserve to correct tracking error during a turn.
+
+\begin{table}[!t]
+    \centering
+    \caption{Path Planner Parameters}
+    \label{tab:planner}
+    \footnotesize
+    \begin{tabularx}{\columnwidth}{@{}l c >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Parameter} & \textbf{Value} & \textbf{Purpose} \\
+        \midrule
+        Grid spacing             & 0.1 m   & Resolution of the A* search \\
+        Hard clearance $c_{h}$   & 0.60 m  & Wall inflation: clearance plus margin \\
+        Soft clearance $c_{s}$   & 0.90 m  & Preferred distance from walls \\
+        Control point spacing    & 1.0 m   & B-spline resolution \\
+        Lateral band             & $\pm$1.0 m & Limit on each offset \\
+        Particles, iterations    & 30, 150 & Swarm budget per leg \\
+        Inertia; acceleration    & 0.9 to 0.4; 1.5 & Standard PSO weights \\
+        Minimum radius $r_{\min}$ & 1.0 m  & Turning limit \\
+        $k_{\kappa}, k_{t}, k_{s}, k_{h}$ & 1, 100, 20, $10^{4}$ & Smooth, turn, soft wall, hard wall \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Advantages and Disadvantages}
+A* is complete and optimal on the grid: if a route exists at the
+required clearance it is found, and the same waypoints always give the
+same route. Its weaknesses are that the path is only optimal to within
+the eight grid directions, and that its cost grows with the number of
+grid points, about $2.1 \times 10^{5}$ here. Building the distance
+matrix took about $15$~s of the $17$~s planning time on a laptop.
+Planning happens before the vehicle moves and is not counted in the
+mission time.
+
+PSO removes the first weakness. It needs no gradient, so the clearance
+term is read straight from a lookup table, and it penalises turns
+tighter than the vehicle can make: the sharpest point of each mission's
+path had a curvature of $0.78$~m$^{-1}$ on average, and one leg of $125$
+exceeded the limit of $1.0$~m$^{-1}$, by $1.4$\%. It is stochastic and gives no guarantee of a global
+optimum, but both are contained by design: the $\pm 1.0$~m band keeps
+every candidate in the corridor A* chose, and the fallback keeps the A*
+leg when smoothing fails. Over the $125$ legs of
+Section~\ref{sec:results} the fallback was never needed, and smoothing
+shortened the path by $1.3$\% on average.
+
+\subsection{Reasons for Choosing the Algorithm}
+The walls are known and the map is small, so an exact grid search is
+affordable and its guarantees are worth having. Dijkstra's algorithm
+returns the same paths as A* but searches in every direction: on the
+$40$ legs of missions $1$ to $8$ it expanded $3.7$ times as many grid
+points for identical path lengths, which matters when fifteen pairs must
+be routed. RRT and its optimal
+variant RRT* \cite{karaman2011} are built for large or high-dimensional
+spaces; in a two-dimensional arena with narrow doorways they are only
+probabilistically complete, can miss a doorway with a finite number of
+samples, and return a different route on every run. A* also gives the
+true driving distance between any two points, which the waypoint
+ordering needs. PSO was added because the corners of a raw A* path
+demand a turn of zero radius, which the vehicle can only approximate by
+cutting into the clearance margin.
+
+\subsection{Waypoint Ordering}
+The visiting order is a travelling salesman problem with a fixed start
+and no return leg. The cost of travelling between points $i$ and $j$ is
+the length $D_{ij}$ of the A* path between them, not the straight-line
+distance, because two waypoints that are close together can be separated
+by a wall. All fifteen pairs among the start and the five waypoints are
+routed to build $D$.
+
+The order is found with the ant colony optimiser developed and tuned in
+Part~A \cite{dorigo1997, partA_group}, unchanged except for the cost
+matrix. Each ant builds a tour by choosing its next waypoint at random,
+favouring short legs and legs that earlier ants found on short tours.
+With five waypoints there
+are only $5! = 120$ orderings, so the result can be checked exhaustively:
+the optimiser returned the optimal order in all $25$ missions of
+Section~\ref{sec:results}. Nearest neighbour, the simplest alternative,
+was optimal in $17$ of the $25$ and up to $9.8$\% longer in the rest.
+Brute force would serve equally well at this size; the optimiser was
+kept because it was already validated and scales to more waypoints.
