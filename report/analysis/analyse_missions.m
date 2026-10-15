@@ -150,7 +150,7 @@ h5 = plot_replans(ax, r, [0.95 0.50 0.00], 2.6, '-');
 h6 = plot(ax, r.p(:,1), r.p(:,2), '-', 'Color', C.drv, 'LineWidth', 1.6);
 plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WP{:});
 label_wps(ax, r.wp_ordered);
-legend(ax, [h2 h5 h6 ho], {'Planned path', 'Re-planned path', 'Driven path (true pose)', 'Obstacle, 0.40 m clearance'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
+legend(ax, [h2 h5 h6 ho], {'Planned path', 'Re-planned path', 'Driven path (true pose)', 'Obstacle, 0.40 m clearance (from surface)'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
 save_fig(f, figDir, 'fig_mission');
 
 % fig_replan: the clearest re-plan over all missions. The path before it ran
