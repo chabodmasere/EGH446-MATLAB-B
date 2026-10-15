@@ -144,8 +144,9 @@ save_fig(f, figDir, 'fig_plan');
 % fig_mission: the whole mission as driven
 f = new_fig(430, 390);  ax = axes(f);  draw_map(ax, lm, false);
 ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R);
-h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '--', 'Color', C.plan, 'LineWidth', 2.0);
-h5 = plot_replans(ax, r, C.rep, 2.4);
+% same line styles as fig_replan
+h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '--', 'Color', [0.55 0.55 0.55], 'LineWidth', 1.2);
+h5 = plot_replans(ax, r, [0.95 0.50 0.00], 2.6, '-');
 h6 = plot(ax, r.p(:,1), r.p(:,2), '-', 'Color', C.drv, 'LineWidth', 1.6);
 plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WP{:});
 label_wps(ax, r.wp_ordered);
@@ -163,8 +164,10 @@ ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R);
 for k = 1:size(obs, 1)
     hk = plot(ax, obs(k,1) + 0.8*cos(th), obs(k,2) + 0.8*sin(th), '--', 'Color', C.rep, 'LineWidth', 1.0);
 end
-h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '--', 'Color', C.plan, 'LineWidth', 2.2);
-h5 = plot_replans(ax, r, C.rep, 2.8);
+% three clearly different lines: superseded plan thin grey dashed, re-plan
+% solid orange, driven path solid blue on top
+h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '--', 'Color', [0.55 0.55 0.55], 'LineWidth', 1.4);
+h5 = plot_replans(ax, r, [0.95 0.50 0.00], 3.0, '-');
 h6 = plot(ax, r.p(:,1), r.p(:,2), '-', 'Color', C.drv, 'LineWidth', 1.8);
 plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WP{:});
 label_wps(ax, r.wp_ordered);
@@ -289,10 +292,11 @@ for k = 1:N
 end
 end
 
-function h = plot_replans(ax, r, col, lw)
+function h = plot_replans(ax, r, col, lw, ls)
 % The parts of each published path that differ from the path before it,
 % and a diamond where the vehicle was when that re-plan happened.
-h = plot(ax, NaN, NaN, ':', 'Color', col, 'LineWidth', lw);
+if nargin < 5, ls = ':'; end
+h = plot(ax, NaN, NaN, ls, 'Color', col, 'LineWidth', lw);
 prev = r.wp_plot;
 for q = 1:numel(r.history)
     P = r.history(q).P;
@@ -300,7 +304,7 @@ for q = 1:numel(r.history)
     Q = P;  Q(~ch, :) = NaN;
     jump = [false; hypot(diff(P(:,1)), diff(P(:,2))) > 0.5];
     Q(jump, :) = NaN;
-    plot(ax, Q(:,1), Q(:,2), ':', 'Color', col, 'LineWidth', lw);
+    plot(ax, Q(:,1), Q(:,2), ls, 'Color', col, 'LineWidth', lw);
     k = min(max(round(r.history(q).step/5), 1), size(r.p, 1));       % 100 Hz step to 20 Hz sample
     plot(ax, r.p(k,1), r.p(k,2), 'd', 'MarkerSize', 7, 'MarkerFaceColor', col, 'MarkerEdgeColor', 'k');
     prev = P;
