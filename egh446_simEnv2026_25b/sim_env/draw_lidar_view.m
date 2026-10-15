@@ -32,8 +32,8 @@ function draw_lidar_view(pose, ranges, scanAngles, scanPose)
 %                  video-game level: dark tiled floor, neon-edged walls, and
 %                  the red/green/blue obstacles drawn as cherries, green
 %                  apples and blueberries. The 'kong' style is a Donkey
-%                  Kong level instead: girder walls, the obstacles as
-%                  barrels, the waypoints as Pauline's lost hat, parasol
+%                  Kong level instead: girder walls, the same fruit
+%                  obstacles, the waypoints as Pauline's lost hat, parasol
 %                  and purse, and Pauline herself at the last waypoint
 %
 %   Save this file in the sim_env folder. It is called from the 'lidar_viz'
@@ -234,16 +234,18 @@ key = {
     {'Color', RED, 'LineStyle', '--', 'LineWidth', 1.5},                'Avoidance: predicted arc'
     {'Color', fieldCol, 'LineWidth', 6},                                'Lidar scan'
     mk('.', mapCol, mapCol),                                            'Walls mapped by lidar'
-    mk('o', 'none', [1.00 0.66 0.00]),                                  'Clearance ring (0.40 m)'
+    mk('o', 'none', [1.00 0.66 0.00]),                                  'Robot clearance ring (0.40 m)'
     };
 
 wp = findobj(ax, 'Type', 'line', 'Marker', 'x');
 if isempty(findall(ax, 'Tag', 'arenaFruit'))            % plain map: squares and crosses
     key(end+1, :) = {mk('s', [0.6 0.6 0.6], ink), 'Obstacle'};
 elseif ~isempty(wp) && strcmp(wp(1).Visible, 'on')      % fruit styles keep the crosses
-    key(end+1, :) = {mk('o', [0.86 0.06 0.14], ink), 'Obstacle (fruit)'};
+    key(end+1, :) = {mk('o', [1.00 0.20 0.25], [1 1 1]), 'Obstacle (fruit)'};
+    key(end+1, :) = {{'Color', RED, 'LineWidth', 1.5}, 'Obstacle clearance (0.55 m from centre)'};
 else                                                    % kong
-    key(end+1, :) = {mk('o', [0.85 0.22 0.12], ink), 'Obstacle (barrel)'};
+    key(end+1, :) = {mk('o', [1.00 0.20 0.25], [1 1 1]), 'Obstacle (fruit)'};
+    key(end+1, :) = {{'Color', RED, 'LineWidth', 1.5}, 'Obstacle clearance (0.55 m from centre)'};
     key(end+1, :) = {mk('o', PINK, ink), 'Waypoint (visiting order)'};
     key(end+1, :) = {mk('^', PINK, ink), 'Final waypoint (HELP!)'};
 end
@@ -414,11 +416,18 @@ end
 if size(obs, 2) >= 3
     set(findobj(ax, 'Type', 'scatter'), 'Visible', 'off');
     for i = 1:size(obs, 1)
-        if strcmp(style, 'kong')
-            draw_barrel(ax, obs(i,1), obs(i,2), obs(i,3));
-        else
-            draw_fruit(ax, obs(i,1), obs(i,2), obs(i,3));
-        end
+        draw_fruit(ax, obs(i,1), obs(i,2), obs(i,3));
+    end
+    % Required clearance around every obstacle, drawn on top of the sprites
+    % so it is always visible: 0.40 m from the surface of a 0.15 m radius
+    % obstacle, so 0.55 m from its centre
+    OBS_CLEAR = 0.55;
+    th = linspace(0, 2*pi, 48);
+    for i = 1:size(obs, 1)
+        line(ax, obs(i,1) + OBS_CLEAR*cos(th), obs(i,2) + OBS_CLEAR*sin(th), ...
+             'Color', [0.95 0.15 0.20], 'LineWidth', 1.5, ...
+             'HandleVisibility', 'off', 'HitTest', 'off', ...
+             'PickableParts', 'none', 'Tag', 'arenaFruit');
     end
 end
 
@@ -436,42 +445,6 @@ if strcmp(style, 'kong')
         end
     end
 end
-end
-
-% =====================================================================
-function draw_barrel(ax, x, y, label)
-% Barrel sprite centred on an obstacle: 1 red, 2 green, 3 blue (the blue
-% one is the oil drum, so it gets a flame).
-S   = 1.4;                     % [m] sprite scale; cosmetic, not the obstacle size
-OUT = [0.10 0.05 0.03];
-th  = linspace(0, 2*pi, 28);
-cu  = cos(th);  su = sin(th);
-common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
-          'PickableParts', 'none', 'Tag', 'arenaFruit'};
-switch label
-    case 1,    body = [0.85 0.22 0.12];  band = [0.45 0.08 0.04];
-    case 2,    body = [0.25 0.72 0.25];  band = [0.08 0.36 0.10];
-    otherwise, body = [0.22 0.42 0.95];  band = [0.07 0.15 0.50];
-end
-if label ~= 1 && label ~= 2    % flame on the oil drum
-    fx = [-0.20 -0.12 -0.06 0.02 0.10 0.18 0.22 0.00];
-    fy = [ 0.36  0.62  0.48 0.78 0.52 0.66 0.36 0.30];
-    patch(ax, x + S*fx, y + S*fy, [1.00 0.55 0.05], 'EdgeColor', [1 0.9 0.2], ...
-          'LineWidth', 0.5, common{:});
-end
-patch(ax, x + S*0.36*cu, y + S*0.44*su, body, 'EdgeColor', OUT, ...
-      'LineWidth', 0.5, common{:});
-for yb = [-0.20 0.20]          % hoops, bowed like the barrel side
-    w = 0.36*sqrt(1 - (yb/0.44)^2);
-    line(ax, x + S*[-w w], y + S*[yb yb], 'Color', band, 'LineWidth', 2, common{:});
-end
-for xs = [-0.14 0.14]          % staves
-    hgt = 0.44*sqrt(1 - (xs/0.36)^2);
-    line(ax, x + S*[xs xs], y + S*0.9*[-hgt hgt], 'Color', band, ...
-         'LineWidth', 0.5, common{:});
-end
-patch(ax, x + S*(-0.17 + 0.05*cu), y + S*(0.02 + 0.12*su), [1 1 1], ...
-      'EdgeColor', 'none', 'FaceAlpha', 0.6, common{:});
 end
 
 % =====================================================================
@@ -529,34 +502,36 @@ end
 function draw_fruit(ax, x, y, label)
 % Small vector sprite centred on an obstacle:
 %   1 (red) cherries, 2 (green) apple, 3 (blue) blueberry.
-S   = 1.4;                     % [m] sprite scale; cosmetic, not the obstacle size
-OUT = [0.10 0.05 0.03];        % outline
+S   = 0.6;                     % [m] sprite scale; cosmetic, fits inside the 0.55 m clearance ring
+OUT = [1 1 1];                 % light outline so the sprite stands out on the dark floor
 th  = linspace(0, 2*pi, 28);
 cu  = cos(th);  su = sin(th);
 common = {'HandleVisibility', 'off', 'HitTest', 'off', ...
           'PickableParts', 'none', 'Tag', 'arenaFruit'};
 blob  = @(cx, cy, rx, ry, col) patch(ax, x + S*(cx + rx*cu), y + S*(cy + ry*su), ...
-            col, 'EdgeColor', OUT, 'LineWidth', 0.5, common{:});
+            col, 'EdgeColor', OUT, 'LineWidth', 1.0, common{:});
 shine = @(cx, cy, r) patch(ax, x + S*(cx + r*cu), y + S*(cy + r*su), ...
             [1 1 1], 'EdgeColor', 'none', 'FaceAlpha', 0.75, common{:});
 stalk = @(px, py, col) line(ax, x + S*px, y + S*py, 'Color', col, ...
             'LineWidth', 1.5, common{:});
 
+halo = [1.00 0.30 0.30; 0.50 1.00 0.30; 0.40 0.60 1.00];   % red, green, blue
+glow(ax, x, y, halo(min(max(label, 1), 3), :), common);
 switch label
     case 1      % cherries
         stalk([-0.26 0.10 0.28], [-0.05 0.58 -0.10], [0.45 0.65 0.20]);
         blob( 0.30,  0.58, 0.20, 0.08, [0.25 0.65 0.20]);
-        blob(-0.26, -0.26, 0.28, 0.28, [0.86 0.06 0.14]);
-        blob( 0.28, -0.30, 0.28, 0.28, [0.86 0.06 0.14]);
+        blob(-0.26, -0.26, 0.28, 0.28, [1.00 0.20 0.25]);
+        blob( 0.28, -0.30, 0.28, 0.28, [1.00 0.20 0.25]);
         shine(-0.35, -0.16, 0.07);
         shine( 0.19, -0.20, 0.07);
     case 2      % green apple
         stalk([0 0.07], [0.30 0.60], [0.55 0.35 0.15]);
         blob( 0.25,  0.52, 0.18, 0.08, [0.20 0.60 0.18]);
-        blob( 0.00, -0.08, 0.46, 0.42, [0.50 0.82 0.16]);
+        blob( 0.00, -0.08, 0.46, 0.42, [0.60 0.95 0.25]);
         shine(-0.18, 0.06, 0.09);
     otherwise   % blueberry
-        blob( 0.00,  0.00, 0.44, 0.44, [0.22 0.32 0.88]);
+        blob( 0.00,  0.00, 0.44, 0.44, [0.40 0.55 1.00]);
         k  = 0:10;
         rr = 0.17 - 0.09*mod(k, 2);
         patch(ax, x + S*(rr.*cos(pi/2 + k*pi/5)), ...
@@ -564,4 +539,13 @@ switch label
               [0.07 0.10 0.40], 'EdgeColor', 'none', common{:});
         shine(-0.20, 0.02, 0.08);
 end
+end
+
+% =====================================================================
+function glow(ax, x, y, col, common)
+% Soft halo behind an obstacle sprite so it reads against the dark floor
+R  = 0.45;                     % [m] inside the 0.55 m clearance ring
+th = linspace(0, 2*pi, 36);
+patch(ax, x + R*cos(th), y + R*sin(th), col, 'EdgeColor', 'none', ...
+      'FaceAlpha', 0.30, common{:});
 end

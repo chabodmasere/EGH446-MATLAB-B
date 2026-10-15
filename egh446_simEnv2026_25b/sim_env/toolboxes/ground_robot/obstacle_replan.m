@@ -21,8 +21,9 @@ function varargout = obstacle_replan(cmd, varargin)
     MERGE    = 0.75;  % [m] detections closer than this are the same obstacle
     MOVE     = 0.3;   % [m] re-plan again if an obstacle estimate moves this far
     TRIGGER  = 1.0;   % [m] re-plan a leg that passes closer than this to an obstacle
-    OBS_CLR  = 0.8;   % [m] hard clearance to an obstacle centre: 0.40 required
-                      %     + 0.40 for detection error and corner cutting
+    OBS_CLR  = 0.8;   % [m] hard clearance to an obstacle centre: 0.55 required
+                      %     (0.40 + 0.15 obstacle radius) + 0.25 for detection
+                      %     error and corner cutting
     OBS_WIDE = 1.0;   % [m] A* tries this keep-out first, so it routes round the
                       %     open side of an obstacle instead of squeezing past
 

@@ -5,7 +5,8 @@ function draw_avoid_view(pose, theta_cmd, theta_safe, avoid_active, d_obs, v, om
 %     GUIDANCE  dotted grey arrow: heading the path follower asks for
 %     STEER     solid red arrow: heading after avoidance, sent to the controller
 %     INTENT    dashed red arc: where the robot goes next if v and omega hold
-%     TARGET    red ring at 0.40 m around the obstacle being avoided
+%     TARGET    red ring at 0.55 m around the obstacle being avoided
+%               (0.40 m from the surface of a 0.15 m radius obstacle)
 %   Always:
 %     DODGES    red trail over every stretch where avoidance was active
 %
@@ -17,7 +18,7 @@ function draw_avoid_view(pose, theta_cmd, theta_safe, avoid_active, d_obs, v, om
 
 ARROW     = 1.5;     % [m] arrow length
 HORIZON   = 2.5;     % [m] length of the intent arc
-CLEARANCE = 0.40;    % [m] robot radius + safety margin
+CLEARANCE = 0.55;    % [m] from obstacle centre: 0.40 required + 0.15 obstacle radius
 JUMP      = 2.0;     % [m] a pose jump this large means a new run
 MAX_FPS   = 10;     % redraw cap (was 30)
 RED       = [0.95 0.15 0.20];
