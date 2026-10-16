@@ -192,22 +192,25 @@ by = [min([Pn(:,2); ob(2); rp(2)]) - 1, max([Pn(:,2); ob(2); rp(2)]) + 1];
 cx = mean(bx);  cy = mean(by);  hw = max(diff(bx), diff(by))/2;
 ORANGE = [0.95 0.50 0.00];
 f = new_fig(400, 420);  ax = axes(f);  draw_map(ax, lm, false);
-ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R);
+% colours as in the simulation's Robot Visualization key (draw_lidar_view)
+SIM = struct('drv', [0.35 0.85 1.00], 'plan', [1.00 0.85 0.20], 'astar', [0.55 0.55 0.60], ...
+             'rep', [0.78 0.45 1.00], 'clr', [0.95 0.15 0.20], 'wp', [1.00 0.45 0.72]);
+ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R, SIM.clr);
 for k = 1:size(obs, 1)
-    hk = plot(ax, obs(k,1) + 0.8*cos(th), obs(k,2) + 0.8*sin(th), '--', 'Color', C.rep, 'LineWidth', 1.0);
+    hk = plot(ax, obs(k,1) + 0.8*cos(th), obs(k,2) + 0.8*sin(th), '--', 'Color', SIM.rep, 'LineWidth', 1.2);
 end
 % path before the re-plan thin grey dashed, new path solid orange, driven
 % path solid blue on top
 % every path the vehicle had: raw A* route and smoothed plan before the
 % re-plan, the re-planned path as a wide see-through band, and the driven
 % path as a thin line on top, so overlapping paths stay visible
-h1 = plot(ax, rb.astar_path(:,1), rb.astar_path(:,2), ':', 'Color', [0.35 0.35 0.40], 'LineWidth', 1.1);
-h2 = plot(ax, best.prev(:,1), best.prev(:,2), '--', 'Color', [0.60 0.60 0.60], 'LineWidth', 1.4);
-h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', [ORANGE 0.45], 'LineWidth', 6.0);
-h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', [0.00 0.30 0.70], 'LineWidth', 1.3);
-plot(ax, rp(1), rp(2), 'd', 'MarkerSize', 8, 'MarkerFaceColor', ORANGE, 'MarkerEdgeColor', 'k');
+h1 = plot(ax, rb.astar_path(:,1), rb.astar_path(:,2), ':', 'Color', SIM.astar, 'LineWidth', 1.3);
+h2 = plot(ax, best.prev(:,1), best.prev(:,2), '--', 'Color', SIM.plan, 'LineWidth', 2.0);
+h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', [SIM.rep 0.45], 'LineWidth', 6.0);
+h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', SIM.drv, 'LineWidth', 1.8);
+plot(ax, rp(1), rp(2), 'd', 'MarkerSize', 8, 'MarkerFaceColor', SIM.rep, 'MarkerEdgeColor', 'k');
 inview = abs(rb.wp_ordered(:,1) - cx) < hw - 0.3 & abs(rb.wp_ordered(:,2) - cy) < hw - 0.3;
-plot(ax, rb.wp_ordered(:,1), rb.wp_ordered(:,2), WP{:});
+plot(ax, rb.wp_ordered(:,1), rb.wp_ordered(:,2), 'o', 'MarkerSize', 8, 'MarkerFaceColor', SIM.wp, 'MarkerEdgeColor', 'k');
 for kw = find(inview)'                                     % label inside the view, above-left of the marker
     text(ax, rb.wp_ordered(kw,1) - 0.30, rb.wp_ordered(kw,2) + 0.35, sprintf('%d', kw), ...
          'FontWeight', 'bold', 'FontSize', 9, 'HorizontalAlignment', 'right', 'Clipping', 'on');
@@ -396,13 +399,14 @@ for dr = -r:r
 end
 end
 
-function h = draw_obstacles(ax, obs, cols, ring, th, rad)
+function h = draw_obstacles(ax, obs, cols, ring, th, rad, ringCol)
 % Each obstacle as a disc of its real radius, with the clearance ring
 % (vehicle centre must stay outside it).
+if nargin < 7, ringCol = [0.80 0.10 0.10]; end
 for k = 1:size(obs, 1)
     c = cols(min(max(round(obs(k,3)), 1), 3), :);
     patch(ax, obs(k,1) + rad*cos(th), obs(k,2) + rad*sin(th), c, 'EdgeColor', 'k', 'LineWidth', 0.5);
-    h = plot(ax, obs(k,1) + ring*cos(th), obs(k,2) + ring*sin(th), '-', 'Color', [0.80 0.10 0.10], 'LineWidth', 1.1);
+    h = plot(ax, obs(k,1) + ring*cos(th), obs(k,2) + ring*sin(th), '-', 'Color', ringCol, 'LineWidth', 1.1);
 end
 end
 
