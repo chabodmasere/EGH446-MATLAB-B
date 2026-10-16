@@ -40,7 +40,7 @@ the first path to reach the goal is the shortest one on the grid.
 \textbf{Smoothing.} An A* path is made of straight runs joined at
 $45^{\circ}$ corners and hugs the inflated walls (Fig.~\ref{fig:plan});
 a steered vehicle cannot follow it. Each leg is therefore replaced by
-a cubic B-spline whose control points start on the A* path, one per
+a cubic B-spline \cite{deboor1978} whose control points start on the A* path, one per
 metre, and may each move up to $1.0$~m sideways. A* fixes which way
 round the walls a leg goes; PSO \cite{kennedy1995} only reshapes the
 curve within that corridor. A particle is the vector of sideways
@@ -76,13 +76,15 @@ can therefore never make a leg less safe than the route it started from.
 
 \subsection{Parameters}
 The swarm uses $30$ particles for $150$ iterations per leg, with
-inertia falling from $0.9$ to $0.4$ and acceleration weights of $1.5$,
+inertia falling from $0.9$ to $0.4$ \cite{shi1998} and acceleration weights of $1.5$,
 and the cost weights are $k_{\kappa} = 1$, $k_{t} = 100$, $k_{s} = 20$
 and $k_{h} = 10^{4}$, so that a breach of the hard clearance outweighs
 every other term. The curvature limit follows from the controller limits of Section~\ref{sec:guidance}:
 the tightest turn the vehicle can hold is the speed limit over the
 turn-rate limit, $v_{\max}/\omega_{\max} = 0.80$~m, and $r_{\min} = 1.0$~m
 leaves turn rate in reserve to correct tracking error during a turn.
+The simulator's front-steer model has no steering lock, so this
+controller limit, not the steering geometry, bounds the turn radius.
 
 \subsection{Advantages and Disadvantages}
 A* is complete and optimal on the grid: if a route exists at the

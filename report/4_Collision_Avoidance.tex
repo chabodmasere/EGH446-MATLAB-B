@@ -185,7 +185,7 @@ its position is averaged, so obstacles are assumed not to move.
 \textit{Estimate error.} Obstacle positions inherit the error of the
 state estimate. The margins are fixed; they do not
 shrink or grow with the filter's covariance during a mission. \textit{Local minima.} The reactive layer can stall where
-repulsion balances attraction, for example in a gap narrower than the
+repulsion balances attraction \cite{koren1991}, for example in a gap narrower than the
 keep-out; re-planning removes most such cases by routing round the open
 side. \textit{Computation.} A re-plan took $0.22$~s to compute on
 average and up to $0.92$~s over the $25$ missions of

@@ -30,7 +30,7 @@ in each.
 Guidance, both avoidance layers and the controller act on the estimate $\hat{\mathbf{x}}$, and the
 obstacle positions are built from it (Eq.~\eqref{eq:detection}), so its
 error sets the margins used throughout this report. The estimator is
-the linear Kalman filter of Part~A \cite{partA_est}, run at $100$~Hz on
+the linear Kalman filter \cite{kalman1960} of Part~A \cite{partA_est}, run at $100$~Hz on
 the state $\mathbf{x} = [p_{x}\ p_{y}\ \theta\ v\ \omega\ v_{x}\ v_{y}]^{\top}$.
 Position integrates the Cartesian velocity and heading integrates the
 turn rate, so the model is linear:
@@ -54,7 +54,7 @@ entering a rate gives, for each (position, rate) pair,
 The pose arrives at $20$~Hz. Each sample is used in one full update on
 the step it arrives; on the steps between, only the speed is fused, so a
 held sample is never counted twice. The covariance is updated in Joseph
-form.
+form \cite{barshalom2001}.
 
 \textbf{Noise characterisation.} $R$ must describe the noise already
 present in the simulator's signals. Part~A set it from the project
