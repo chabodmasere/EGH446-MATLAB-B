@@ -1,0 +1,59 @@
+missions                      25
+completed                     25 (100 %)
+mission time [s]                   mean 117.192  median 119.210  min 75.450  max 167.550  std 24.408
+final stop error [m]               mean 0.106  median 0.095  min 0.032  max 0.199  std 0.045
+min obstacle clearance [m]         mean 0.760  median 0.753  min 0.609  max 0.889  std 0.085
+min wall clearance [m]             mean 0.781  median 0.800  min 0.629  max 0.890  std 0.072
+min obstacle clearance, raw [m]    mean 0.603  median 0.610  min 0.430  max 0.724  std 0.082
+min wall clearance, raw [m]        mean 0.605  median 0.610  min 0.388  max 0.728  std 0.075
+min obstacle clearance, estimate [m] mean 0.693  median 0.722  min 0.492  max 0.832  std 0.106
+min wall clearance, estimate [m]   mean 0.704  median 0.731  min 0.527  max 0.848  std 0.087
+estimate vs raw pose RMS [m]       mean 0.121  median 0.121  min 0.119  max 0.122  std 0.001
+position error RMS (est vs true) [m] mean 0.080  median 0.080  min 0.077  max 0.083  std 0.002
+position error max (est vs true) [m] mean 0.226  median 0.221  min 0.201  max 0.280  std 0.020
+heading error RMS (est vs true) [deg] mean 1.880  median 1.879  min 1.856  max 1.912  std 0.012
+raw pose error RMS (raw vs true) [m] mean 0.139  median 0.139  min 0.137  max 0.140  std 0.001
+wall repulsion active [s]          mean 9.882  median 9.050  min 3.950  max 17.600  std 3.169
+re-plan compute time, max [s]      mean 0.361  median 0.280  min 0.178  max 0.923  std 0.200
+re-plan compute time, mean [s]     mean 0.224  median 0.215  min 0.122  max 0.440  std 0.083
+PSO max curvature [1/m]            mean 0.778  median 0.767  min 0.615  max 1.014  std 0.103
+raw pose noise sigma/axis [m]      mean 0.056  median 0.056  min 0.055  max 0.057  std 0.000
+capture error wp 1-4 [m]           mean 0.393  median 0.396  min 0.384  max 0.398  std 0.004
+capture error final wp [m]         mean 0.091  median 0.092  min 0.071  max 0.100  std 0.009
+closest approach wp 1-4 [m]        mean 0.145  median 0.141  min 0.043  max 0.243  std 0.041
+RMS cross-track, active path [m]   mean 0.093  median 0.094  min 0.081  max 0.101  std 0.006
+max cross-track, active path [m]   mean 0.349  median 0.348  min 0.306  max 0.389  std 0.023
+A* length [m]                      mean 109.016  median 111.230  min 66.883  max 159.427  std 24.207
+planned (PSO) length [m]           mean 107.571  median 109.174  min 66.586  max 157.330  std 23.780
+driven length [m]                  mean 108.838  median 111.224  min 68.121  max 158.320  std 23.644
+driven/planned - 1 [%]             mean 1.270  median 1.292  min -0.247  max 3.091  std 0.842
+PSO/A* - 1 [%]                     mean -1.307  median -1.315  min -2.838  max 0.187  std 0.886
+mean speed [m/s]                   mean 0.927  median 0.927  min 0.903  max 0.952  std 0.013
+re-plans                           mean 3.320  median 3.000  min 1.000  max 7.000  std 1.492
+reactive active [s]                mean 0.121  median 0.000  min 0.000  max 0.840  std 0.216
+missions with reactive layer active      10
+missions below 0.40 m obstacle clearance 0
+missions below 0.40 m wall clearance     0
+missions below 0.40 m by raw pose: obstacle 0, wall 1
+missions below 0.40 m by estimate: obstacle 0, wall 0
+missions with wall repulsion active      25
+PSO legs above curvature limit 1.0 1/m   1 of 125
+ACO order optimal (brute force)          25 of 25
+PSO legs falling back to A*              0 of 125
+nearest-neighbour tour above optimum [%] mean 0.934  median 0.000  min 0.000  max 9.805  std 2.260
+nearest-neighbour optimal in             17 of 25
+ACO tour above optimum [%]         mean 0.000  median 0.000  min 0.000  max 0.000  std 0.000
+
+SWEEP over seeds [1;2;3;4;5;6;7;8]
+baseline (1.0 m/s, 0.4 m)    n 8  completed 8  time 111.6  worst wall 0.768  worst obs 0.609  cap(1-4) 0.394  rms xte 0.094  below clearance 0
+                             closest approach 0.163  mean min wall 0.820  final err 0.122
+v_max 1.5 m/s                n 8  completed 8  time 83.0  worst wall 0.600  worst obs 0.489  cap(1-4) 0.393  rms xte 0.189  below clearance 0
+                             closest approach 0.101  mean min wall 0.735  final err 0.168
+v_max 2.0 m/s                n 8  completed 8  time 70.8  worst wall 0.344  worst obs 0.421  cap(1-4) 0.396  rms xte 0.313  below clearance 1
+                             closest approach 0.082  mean min wall 0.570  final err 0.146
+capture radius 0.8 m         n 8  completed 8  time 107.7  worst wall 0.723  worst obs 0.618  cap(1-4) 0.794  rms xte 0.087  below clearance 0
+                             closest approach 0.407  mean min wall 0.813  final err 0.119
+
+showcase mission: seed 9 (time 94.5 s, re-plans 2, reactive 0.84 s, rms xte 0.094, min obs 0.684, min wall 0.629)
+re-plan times [s]: [3.9 19]
+fig_replan: mission seed 13, re-plan 4, obstacle 5 at (5.0, 35.0); path before passed 0.02 m from its centre, new path 1.07 m, vehicle 4.71 m away at the re-plan

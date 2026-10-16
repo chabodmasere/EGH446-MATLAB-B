@@ -1,0 +1,7 @@
+missions 25
+heading error |e| [deg]: median 4.2  mean 7.5  p90 15.3  p95 21.5  p99 77.8
+  share |e| < 10 deg 79.3 %, < 30 deg 96.5 %, > 36 deg (turn rate saturated at K=2) 2.92 %, > 72 deg 1.27 %, at cos floor 0.73 %
+true |omega| [rad/s]: median 0.14  p95 0.75  p99 1.26  max 1.26; share >= 0.95*omega_max 3.06 %
+true speed [m/s] while moving: median 1.00  mean 0.93; share >= 0.95 v_max 83.6 %
+distance law saturated 91.9 % of the time
+mean v_cmd 0.931, mean true speed 0.931

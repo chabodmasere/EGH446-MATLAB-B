@@ -1,0 +1,1 @@
+straight-line order longer to drive in 13 of 25 missions; mean 8.6%, max 32.2% (order_check on the 25 base missions)

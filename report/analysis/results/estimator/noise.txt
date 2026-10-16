@@ -1,0 +1,13 @@
+missions 25, samples 58617, measured-pose sample time 0.050 s
+mean   x -0.0010 m  y -0.0006 m  theta -0.058 deg
+std    x 0.1001 m  y 0.0964 m  theta 1.962 deg
+planar RMS 0.1390 m
+corr(x, y) 0.020
+autocorrelation lag 1 (0.05 s): x 0.499  y 0.516  theta 0.511
+autocorrelation lag 2 (0.10 s): x -0.001  y 0.033  theta 0.023
+autocorrelation lag 3 (0.15 s): x -0.026  y 0.028  theta -0.000
+axis 1: KS normality p 0.000, kurtosis 3.22
+axis 2: KS normality p 0.000, kurtosis 2.97
+axis 3: KS normality p 0.000, kurtosis 3.06
+speed  mean -0.0090 m/s  std 0.1067 m/s  lag-1 autocorrelation (0.01 s) 0.904  kurtosis 4.59  (292835 samples)
+estimator input refreshes on 20.0 % of 100 Hz steps (20.0 Hz)

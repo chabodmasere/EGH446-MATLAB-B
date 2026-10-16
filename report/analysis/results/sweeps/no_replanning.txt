@@ -1,0 +1,4 @@
+base: time 111.6 s, min obstacle clearance mean 0.773 worst 0.609, worst wall 0.768, below 0.40: obstacle 0 wall 0 of 8, reactive active mean 0.05 s (max 0.43), all 5 captured in 8
+   per mission min obstacle: [0.66 0.86 0.71 0.87 0.61 0.85 0.75 0.89]
+norep: time 113.1 s, min obstacle clearance mean 0.385 worst 0.291, worst wall 0.649, below 0.40: obstacle 5 wall 0 of 8, reactive active mean 4.12 s (max 9.74), all 5 captured in 8
+   per mission min obstacle: [0.44 0.38 0.5 0.3 0.37 0.38 0.29 0.42]

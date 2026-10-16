@@ -1,0 +1,6 @@
+A* vs Dijkstra over 40 legs (missions 1-8)
+  points expanded: A* mean 8380, Dijkstra mean 31276, ratio 3.73
+  time per leg:    A* mean 0.109 s, Dijkstra mean 0.277 s
+  largest path length difference 0.0000 m
+PSO legs: 125, peak curvature mean 0.48, max 1.01 1/m, legs over 1.0: 1; min wall clearance of smoothed legs: mean 0.88, min 0.70 m
+mission 11 closest wall pass: 0.401 m at t = 21.8 s, position (17.62, 7.12); active path there is 0.86 m from the wall; vehicle 0.48 m off the path; nearest waypoint 1.42 m away; replans before: 2
