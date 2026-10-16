@@ -40,9 +40,9 @@ the first path to reach the goal is the shortest one on the grid.
 \textbf{Smoothing.} An A* path is made of straight runs joined at
 $45^{\circ}$ corners and hugs the inflated walls (Fig.~\ref{fig:plan});
 a steered vehicle cannot follow it. Each leg is therefore replaced by
-a cubic B-spline \cite{deboor1978} whose control points start on the A* path, one per
+a cubic B-spline \cite{deboor1978, gonzalez2016} whose control points start on the A* path, one per
 metre, and may each move up to $1.0$~m sideways. A* fixes which way
-round the walls a leg goes; PSO \cite{kennedy1995} only reshapes the
+round the walls a leg goes; PSO \cite{kennedy1995, shami2022} only reshapes the
 curve within that corridor. A particle is the vector of sideways
 offsets, and the swarm minimises a cost evaluated along the curve,
 \begin{equation}
@@ -107,7 +107,7 @@ shortened the path by $1.3$\% on average.
 
 \subsection{Reasons for Choosing the Algorithm}
 The walls are known and the map is small, so an exact grid search is
-affordable and its guarantees are worth having. Dijkstra's algorithm
+affordable and its guarantees are worth having \cite{paden2016}. Dijkstra's algorithm
 returns the same paths as A* but searches in every direction: on the
 $40$ legs of missions $1$ to $8$ it expanded $3.7$ times as many grid
 points for identical path lengths, which matters when fifteen pairs must
