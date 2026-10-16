@@ -212,8 +212,11 @@ h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', [SIM.rep 0.40], 'LineWidth', 8.0);
 plot(ax, best.prev(:,1), best.prev(:,2), '-', 'Color', OUTL, 'LineWidth', 3.4);
 h2 = plot(ax, best.prev(:,1), best.prev(:,2), '-', 'Color', SIM.plan, 'LineWidth', 2.2);
 h1 = plot(ax, rb.astar_path(:,1), rb.astar_path(:,2), ':', 'Color', [0.30 0.30 0.35], 'LineWidth', 1.6);
-plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', [0.00 0.25 0.45], 'LineWidth', 3.2);
-h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', SIM.drv, 'LineWidth', 1.8);
+% driven path as the simulation draws it: the state estimate sent to the
+% Robot Visualization at 20 Hz (every 5th sample of the 100 Hz estimate)
+pd = rb.xh(1:5:end, 1:2);
+plot(ax, pd(:,1), pd(:,2), '-', 'Color', [0.00 0.25 0.45], 'LineWidth', 2.8);
+h6 = plot(ax, pd(:,1), pd(:,2), '-', 'Color', SIM.drv, 'LineWidth', 1.5);
 for k = 1:size(obs, 1)                                     % obstacles back on top of the paths
     patch(ax, obs(k,1) + OBS_R*cos(th), obs(k,2) + OBS_R*sin(th), C.obs(min(max(round(obs(k,3)), 1), 3), :), ...
           'EdgeColor', 'k', 'LineWidth', 0.5);
