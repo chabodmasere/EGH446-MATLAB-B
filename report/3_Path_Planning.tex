@@ -16,7 +16,7 @@ handled during the mission (Section~\ref{sec:avoidance}).
 
 \subsection{Map Inflation}
 Growing every wall by at least $d_{\text{clear}}$ lets the vehicle be planned as
-a point in configuration space. The
+a point in configuration space \cite{sanchez2021}. The
 map is an occupancy grid with $0.1$~m cells, and the planner searches
 over the cell corners. Each wall cell is therefore first extended to the
 four corners it touches, so that distances from those corners are true
@@ -26,7 +26,7 @@ from a noisy state estimate, and a path planned at exactly $0.40$~m
 would breach the clearance with any tracking error.
 
 \subsection{Working Principle}
-\textbf{Routing.} Each leg is routed with A* on the
+\textbf{Routing.} Each leg is routed with A* \cite{sanchez2021} on the
 inflated grid. A* expands the grid point with the lowest
 \begin{equation}
     f(n) = g(n) + h(n),
@@ -123,7 +123,7 @@ cutting into the clearance margin.
 
 \subsection{Waypoint Ordering}
 The visiting order is found with the waypoint optimiser of Part~A
-\cite{partA_group}, unchanged except for its cost. In
+\cite{blum2024, partA_group}, unchanged except for its cost. In
 Part~A the field was empty and the cost between two points was the
 straight-line distance. Here two waypoints that are close together can be
 separated by a wall, so the cost $D_{ij}$ is the length of the A* path
