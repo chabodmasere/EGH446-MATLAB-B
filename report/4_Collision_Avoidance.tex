@@ -101,7 +101,11 @@ passed and are ignored.
 Each lidar beam shorter than $1.2$~m adds a repulsion of the same form,
 with gain $k_{\text{wall}}$, away from the wall it hit. The gains are
 $k_{\text{rep}} = k_{\text{tan}} = 1.0$ and $k_{\text{wall}} = 1.8$, set by
-hand in simulation. The reach equals the planner's keep-out, so the
+hand and checked by halving and doubling all three on missions $1$
+to $8$. No mission breached the clearance. Halving cut the worst wall
+clearance from $0.77$ to $0.59$~m; doubling raised it only to $0.80$~m
+but lowered the worst obstacle clearance to $0.58$~m and raised the RMS
+cross-track error to $0.11$~m. The reach equals the planner's keep-out, so the
 obstacle term acts only once the vehicle is already inside it, that is,
 when re-planning has not kept it clear. The
 heading of the summed vector is low-pass filtered with a time constant
