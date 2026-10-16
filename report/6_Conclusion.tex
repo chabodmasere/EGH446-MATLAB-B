@@ -6,10 +6,9 @@
 
 This report presented a navigation system that takes a ground robot
 through five random waypoints in a walled arena whose obstacles it can
-only discover with its own sensors. The mission is planned on the known
-walls with A*, PSO smoothing and the Part~A waypoint optimiser;
-detected obstacles are remembered and the remaining path is re-planned
-around them, with a reactive potential field as a close-range backup.
+only discover with its own sensors. It plans on the known walls
+with A*, PSO and the Part~A waypoint optimiser, re-plans around detected
+obstacles, and keeps a potential field as a close-range backup.
 
 Over $25$ random missions the vehicle captured every waypoint and kept
 at least $0.20$~m above the required $0.40$~m clearance. Re-planning
