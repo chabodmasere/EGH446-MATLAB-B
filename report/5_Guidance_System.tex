@@ -206,6 +206,14 @@ $K_{d} = 0.75$ was kept.
 \section{Results}
 \label{sec:results}
 
+\begin{figure*}[!t]
+    \centering
+    \reportfig[0.9\textwidth]{fig_batch_k2.png}
+    \caption{Minimum true clearance (left) and mission time with number
+    of re-plans (right) for each of the $25$ missions.}
+    \label{fig:batch}
+\end{figure*}
+
 The system was evaluated on $25$ random missions, generated from
 seeds $1$ to $25$ so that they can be repeated. Mission time excludes
 planning and re-planning, during which the simulation clock is stopped.
@@ -276,15 +284,7 @@ $0.16$~m closer to an obstacle than it really is, and this is why the
 margins of Sections~\ref{sec:planning} and~\ref{sec:avoidance} are
 sized against the measured estimate error rather than against zero.
 
-\begin{figure*}[!t]
-    \centering
-    \reportfig[0.9\textwidth]{fig_batch_k2.png}
-    \caption{Minimum true clearance (left) and mission time with number
-    of re-plans (right) for each of the $25$ missions.}
-    \label{fig:batch}
-\end{figure*}
-
-\textbf{Avoidance layers.} The path was re-planned between one and six
+\textbf{Avoidance layers.} The path was re-planned between one and seven
 times in every mission. Each re-plan took $0.22$~s to compute on
 average and $0.92$~s at most. The obstacle repulsion of the reactive
 layer acted in $10$ of the $25$ missions, for $0.12$~s per mission on
@@ -298,7 +298,7 @@ clearance alone; re-planning is what provides it.
 
 \textbf{Tracking and capture.} The cross-track error, measured from the
 true pose against the path that was active at each instant, had an RMS
-of $0.09$~m and a largest value of $0.39$~m (Fig.~\ref{fig:timeline}).
+of $0.09$~m and a largest value of $0.39$~m.
 The peaks exceed the $0.20$~m added to the wall inflation; it is the
 soft clearance, which keeps the path about $0.9$~m from walls wherever
 there is room, that absorbs them. Waypoints $1$ to $4$ are captured on
@@ -306,14 +306,6 @@ entering a $0.4$~m capture radius, so their capture error equals the
 radius by design. The path runs through each waypoint, so the vehicle
 carries on past it after capture: its true path passed within $0.15$~m
 of them on average and never more than $0.24$~m away.
-
-\begin{figure}[!tb]
-    \centering
-    \reportfig{fig_timeline_k2.png}
-    \caption{True clearance and cross-track error in mission 9. Dotted
-    lines mark the two re-plans.}
-    \label{fig:timeline}
-\end{figure}
 
 \textbf{Speed and capture radius.} Table~\ref{tab:sweep} repeats
 missions $1$ to $8$ with one parameter changed at a time. Raising the

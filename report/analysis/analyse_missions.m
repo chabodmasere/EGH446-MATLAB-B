@@ -153,36 +153,43 @@ label_wps(ax, r.wp_ordered);
 legend(ax, [h2 h5 h6 ho], {'Planned path', 'Re-planned path', 'Driven path (true pose)', 'Obstacle, 0.40 m clearance (from surface)'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
 save_fig(f, figDir, 'fig_mission');
 
-% fig_replan: the clearest re-plan over all missions. The path before it ran
-% closest to an obstacle centre, the new path clears the 0.8 m keep-out, and
-% the vehicle then tracked the new path to within 0.25 m near that obstacle.
-best = struct('d', inf);
+% fig_replan: the clearest re-plan over all missions. Candidates are
+% re-plans whose previous path ran within 0.3 m of an obstacle centre (so
+% through the obstacle) and whose new path clears the 0.8 m keep-out; the
+% one the vehicle then followed most closely, along the whole new path, is
+% shown.
+best = struct('track', inf);
 for k = 1:numel(M)
     rk = M{k};  stepk = round(rk.ptt*100);  prev = rk.wp_plot;
     for q = 1:numel(rk.history)
         P = rk.history(q).P;
         k0 = find(stepk >= rk.history(q).step, 1);
+        if isempty(k0), prev = P; continue, end
+        rp0 = rk.p(k0, :);
+        [~, i0] = min(hypot(P(:,1) - rp0(1), P(:,2) - rp0(2)));
+        Q = P(i0:end, :);
+        jq = find(hypot(diff(Q(:,1)), diff(Q(:,2))) > 0.5, 1);
+        if ~isempty(jq), Q = Q(1:jq, :); end
+        [~, ke] = min(hypot(rk.p(k0:end,1) - Q(end,1), rk.p(k0:end,2) - Q(end,2)));
+        seg = rk.p(k0:k0+ke-1, :);
         for o = 1:size(obs, 1)
-            if isempty(k0), break; end
             dPrev = min(hypot(prev(:,1) - obs(o,1), prev(:,2) - obs(o,2)));
-            dNew  = min(hypot(P(:,1) - obs(o,1), P(:,2) - obs(o,2)));
-            near  = (1:size(rk.p, 1))' >= k0 & hypot(rk.p(:,1) - obs(o,1), rk.p(:,2) - obs(o,2)) < 2.0;
-            if dPrev < best.d && dNew > 0.8 && any(near) && max(path_distance(rk.p(near,:), P)) < 0.25
-                best = struct('d', dPrev, 'k', k, 'q', q, 'o', o, 'k0', k0, 'prev', prev, 'P', P);
+            dNew  = min(hypot(Q(:,1) - obs(o,1), Q(:,2) - obs(o,2)));
+            if dPrev < 0.3 && dNew > 0.8 && size(seg, 1) > 10
+                tr = max(path_distance(seg, Q));
+                if tr < best.track
+                    best = struct('track', tr, 'd', dPrev, 'k', k, 'q', q, 'o', o, 'k0', k0, 'prev', prev, 'P', P, 'Pn', Q);
+                end
             end
         end
         prev = P;
     end
 end
-rb = M{best.k};  ob = obs(best.o, 1:2);  rp = rb.p(best.k0, :);
-% new path from where the vehicle was at the re-plan, up to the first join
-% longer than 0.5 m (the published path also holds the earlier legs)
-[~, i0] = min(hypot(best.P(:,1) - rp(1), best.P(:,2) - rp(2)));
-Pn = best.P(i0:end, :);
-jmp = find(hypot(diff(Pn(:,1)), diff(Pn(:,2))) > 0.5, 1);
-if ~isempty(jmp), Pn = Pn(1:jmp, :); end
-cx = (ob(1) + rp(1))/2;  cy = (ob(2) + rp(2))/2;          % obstacle and re-plan point both in view
-hw = max(3.5, 0.5*hypot(ob(1) - rp(1), ob(2) - rp(2)) + 1.5);
+rb = M{best.k};  ob = obs(best.o, 1:2);  rp = rb.p(best.k0, :);  Pn = best.Pn;
+% view: the new path, the obstacle and the re-plan point with a 1 m margin
+bx = [min([Pn(:,1); ob(1); rp(1)]) - 1, max([Pn(:,1); ob(1); rp(1)]) + 1];
+by = [min([Pn(:,2); ob(2); rp(2)]) - 1, max([Pn(:,2); ob(2); rp(2)]) + 1];
+cx = mean(bx);  cy = mean(by);  hw = max(diff(bx), diff(by))/2;
 ORANGE = [0.95 0.50 0.00];
 f = new_fig(400, 420);  ax = axes(f);  draw_map(ax, lm, false);
 ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R);
@@ -195,17 +202,18 @@ h2 = plot(ax, best.prev(:,1), best.prev(:,2), '--', 'Color', [0.55 0.55 0.55], '
 h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', ORANGE, 'LineWidth', 3.0);
 h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', C.drv, 'LineWidth', 1.8);
 plot(ax, rp(1), rp(2), 'd', 'MarkerSize', 8, 'MarkerFaceColor', ORANGE, 'MarkerEdgeColor', 'k');
+inview = abs(rb.wp_ordered(:,1) - cx) < hw - 0.3 & abs(rb.wp_ordered(:,2) - cy) < hw - 0.3;
 plot(ax, rb.wp_ordered(:,1), rb.wp_ordered(:,2), WP{:});
-label_wps(ax, rb.wp_ordered);
+label_wps(ax, rb.wp_ordered .* inview + 1e6*~inview);   % no labels for waypoints out of view
 xlim(ax, cx + [-hw hw]);  ylim(ax, cy + [-hw hw]);
 legend(ax, [h2 h5 h6 ho hk], {'Path before re-plan', 'Re-planned path', 'Driven path', ...
        '0.40 m clearance (from surface)', '0.8 m keep-out'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
 save_fig(f, figDir, 'fig_replan');
 fidx = fopen(fullfile(outDir, 'summary.txt'), 'a');
 fprintf(fidx, ['fig_replan: mission seed %d, re-plan %d, obstacle %d at (%.1f, %.1f); path before passed %.2f m ' ...
-               'from its centre, new path %.2f m, vehicle %.2f m away at the re-plan\n'], ...
+               'from its centre, new path %.2f m, vehicle %.2f m away at the re-plan, worst tracking %.2f m\n'], ...
         rb.seed, best.q, best.o, ob(1), ob(2), best.d, ...
-        min(hypot(best.P(:,1) - ob(1), best.P(:,2) - ob(2))), hypot(ob(1) - rp(1), ob(2) - rp(2)));
+        min(hypot(best.P(:,1) - ob(1), best.P(:,2) - ob(2))), hypot(ob(1) - rp(1), ob(2) - rp(2)), best.track);
 fclose(fidx);
 
 % fig_timeline: clearance and cross-track error against time
