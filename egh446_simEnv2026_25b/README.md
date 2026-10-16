@@ -81,9 +81,10 @@ Over 25 seeded missions (seeds 1 to 25), measured against the simulator's
 noise-free pose:
 
 - 25 of 25 missions completed; the waypoint order was optimal in all 25
-- mean mission time 123 s for a 108 m planned path
-- closest pass 0.58 m to an obstacle and 0.65 m to a wall (required 0.40 m)
-- waypoints 1 to 4 passed within 0.23 m; final stop within 0.22 m
+- mean mission time 117 s for a 108 m planned path
+- closest pass 0.61 m to an obstacle and 0.63 m to a wall (required 0.40 m)
+- waypoints 1 to 4 passed within 0.24 m; final stop within 0.20 m
+- heading gain `K_theta` = 2, chosen from a gain test (`K_theta` 0.5, 1, 2, 3)
 
 ## Reproducing the report's results
 
@@ -95,6 +96,7 @@ in the submission zip and in the group repository):
 - `analyse_missions.m`: metrics, the speed and capture-radius sweep, and the
   report figures
 - `ablation.m`: missions with the re-planner switched off
+- the report's runs are in `report/analysis/logs_v6` (heading gain 2)
 - `noise_characterise.m`, `kf_tune.m`: sensor-noise statistics and the offline
   Kalman filter tuning
 

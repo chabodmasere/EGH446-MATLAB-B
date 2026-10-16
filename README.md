@@ -48,10 +48,10 @@ with a 0.8 m keep-out around it. The potential field only acts as a close-range 
 
 Across 25 seeded missions, measured against the simulator's noise-free pose:
 
-- every waypoint was captured in the optimal order; waypoints 1 to 4 were passed within 0.23 m and the last captured within 0.10 m
-- a 108 m mission took 123 s on average, at a 1.0 m/s speed limit
-- the smallest clearance was 0.58 m from an obstacle and 0.65 m from a wall (required 0.40 m)
-- with re-planning switched off, six of eight test missions breached the obstacle clearance
+- every waypoint was captured in the optimal order; waypoints 1 to 4 were passed within 0.24 m and the last captured within 0.10 m
+- a 108 m mission took 117 s on average, at a 1.0 m/s speed limit and a heading gain of 2 (chosen from a gain test)
+- the smallest clearance was 0.61 m from an obstacle and 0.63 m from a wall (required 0.40 m)
+- with re-planning switched off, five of eight test missions breached the obstacle clearance
 - the Kalman filter's measurement noise is set from the sensor noise measured against the noise-free pose (0.10 m, 2 deg, 0.1 m/s)
 
 ## Running it
