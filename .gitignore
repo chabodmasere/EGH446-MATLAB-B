@@ -2,3 +2,5 @@
 slprj/
 *.autosave
 mpm
+._*
+.DS_Store
