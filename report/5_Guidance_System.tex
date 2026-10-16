@@ -89,8 +89,7 @@ position error, against $0.080$~m for the best combination tested. What
 the recalibration fixes is consistency. A consistent filter has a mean
 normalised innovation squared (NIS) equal to the pose dimension, $3$;
 the old $R$ gave $0.89$, a filter that overstates its own uncertainty,
-and the new one gives $2.5$. Covariance calibration was the main
-weakness identified in Part~A \cite{partA_est}. Over all $25$ missions, the filter reduces the planar position error
+and the new one gives $2.5$. Over all $25$ missions, the filter reduces the planar position error
 from $0.139$~m RMS in the raw measurement to $0.080$~m, and $99$\% of
 its errors are below $0.18$~m. That value is what the $0.20$~m tracking
 margin of Section~\ref{sec:planning} and the $0.25$~m obstacle margin of
@@ -213,8 +212,7 @@ seeds $1$ to $25$ so that they can be repeated. Mission time excludes
 planning and re-planning, during which the simulation clock is stopped.
 Ground truth is the vehicle pose before the simulator adds measurement
 noise (Section~\ref{sec:estimator}). Clearance, cross-track error and
-closest approach are measured from it. Clearance by the state estimate,
-which is what the vehicle itself believed, is given for comparison.
+closest approach are measured from it.
 
 \begin{table}[!t]
     \centering
