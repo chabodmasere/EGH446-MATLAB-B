@@ -10,7 +10,7 @@ is deliberative: when an obstacle is detected near the path still to be
 driven, that part of the path is planned again around it. The second is
 reactive: a potential field \cite{khatib1986} steers the vehicle away
 from any obstacle whose centre comes within $0.8$~m. Re-planning does most of
-the work because it acts early and keeps the guarantees of the planner;
+the work because it acts early and keeps the planner's clearance guarantee;
 the reactive layer covers what re-planning cannot, such as an obstacle
 confirmed too late. Neither layer reads the obstacle list. Every
 obstacle position they use comes from the onboard detector.
@@ -183,8 +183,7 @@ detected late and leaves the reactive layer little room.
 \textit{Static obstacles.} A remembered obstacle is never forgotten and
 its position is averaged, so obstacles are assumed not to move.
 \textit{Estimate error.} Obstacle positions inherit the error of the
-state estimate. The margins are sized against its measured
-distribution (Section~\ref{sec:estimator}) but are fixed; they do not
+state estimate. The margins are fixed; they do not
 shrink or grow with the filter's covariance during a mission. \textit{Local minima.} The reactive layer can stall where
 repulsion balances attraction, for example in a gap narrower than the
 keep-out; re-planning removes most such cases by routing round the open

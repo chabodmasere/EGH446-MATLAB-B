@@ -5,8 +5,8 @@
 \label{sec:guidance}
 
 \subsection{Subsystems Reused from Part A}
-All four Part~A subsystems were carried into Part~B
-(Table~\ref{tab:reuse}).
+Table~\ref{tab:reuse} lists the four Part~A subsystems and what changed
+in each.
 
 \begin{table}[!t]
     \centering
@@ -19,7 +19,7 @@ All four Part~A subsystems were carried into Part~B
         \midrule
         State estimator   & Yes    & Same seven-state linear Kalman filter at $100$~Hz. Each pose sample is used in one update, on the step it arrives. $R$ and $Q$ recalibrated from the measured noise (Section~\ref{sec:estimator}). \\
         Waypoint guidance & Partly & Capture logic kept, radius reduced to $0.4$~m. Straight-line tracking and the $5$~m look-ahead replaced by following the planned path. \\
-        Controller        & Yes    & Same structure. Speed limit $1.0$~m/s; heading gain raised from $1$ to $2$~s$^{-1}$ (Section~\ref{sec:controller}); speed also scaled by the avoidance layer. \\
+        Controller        & Yes    & Same structure. Speed limit lowered from $2.0$ to $1.0$~m/s; heading gain raised from $1$ to $2$~s$^{-1}$ (Section~\ref{sec:controller}); speed also scaled by the avoidance layer. \\
         Waypoint ordering & Yes    & Same ant colony optimiser. Cost is A* path length; five waypoints. \\
         \bottomrule
     \end{tabularx}
@@ -90,13 +90,13 @@ the recalibration fixes is consistency. A consistent filter has a mean
 normalised innovation squared (NIS) equal to the pose dimension, $3$;
 the old $R$ gave $0.89$, a filter that overstates its own uncertainty,
 and the new one gives $2.5$. Covariance calibration was the main
-weakness identified in Part~A \cite{partA_est}. The filter reduces the planar position error
+weakness identified in Part~A \cite{partA_est}. Over all $25$ missions, the filter reduces the planar position error
 from $0.139$~m RMS in the raw measurement to $0.080$~m, and $99$\% of
 its errors are below $0.18$~m. That value is what the $0.20$~m tracking
 margin of Section~\ref{sec:planning} and the $0.25$~m obstacle margin of
 Section~\ref{sec:avoidance} are sized against.
 
-\subsection{Modifications for Part B}
+\subsection{Guidance Modifications for Part B}
 \textbf{Path following.} In Part~A no wall stood between waypoints.
 Here the straight line to a waypoint may pass through a wall, so
 guidance follows the planned path, a list of points about $0.1$~m
@@ -277,8 +277,7 @@ margins of Sections~\ref{sec:planning} and~\ref{sec:avoidance} are
 sized against the measured estimate error rather than against zero.
 
 \textbf{Avoidance layers.} The path was re-planned between one and seven
-times in every mission. Each re-plan took $0.22$~s to compute on
-average and $0.92$~s at most. The obstacle repulsion of the reactive
+times in every mission. The obstacle repulsion of the reactive
 layer acted in $10$ of the $25$ missions, for $0.12$~s per mission on
 average and never for more than $0.84$~s. The wall repulsion acted in
 every mission, for $9.9$~s on average. With the re-planner switched off,
@@ -304,8 +303,8 @@ of a wall. The paths are planned for a turn radius of $1.0$~m, but at
 these speeds the tightest turn the vehicle can hold grows to $1.2$~m
 and $1.6$~m, so it can no longer follow the planned curves, and the RMS
 cross-track error rises from $0.09$~m to $0.19$~m and $0.31$~m. A
-$0.09$~m margin is smaller than the $0.18$~m the estimate can be wrong by
-(Section~\ref{sec:estimator}), so $1.0$~m/s, whose worst margin is
+$0.09$~m margin is smaller than the estimate's $99$th-percentile error of
+$0.18$~m (Section~\ref{sec:estimator}), so $1.0$~m/s, whose worst margin is
 $0.21$~m, was kept. Doubling the capture radius to $0.8$~m saved
 $3.5$\% in time with no loss of clearance, but the vehicle then passed
 the intermediate waypoints $0.41$~m away on average instead of

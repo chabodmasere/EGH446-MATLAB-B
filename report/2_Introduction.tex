@@ -79,8 +79,8 @@ location without colliding with its surroundings \cite{siegwart2011}.
 Part~A of this project addressed the first two of these problems in an
 obstacle-free field \cite{partA_est, partA_group}: the vehicle estimated
 its state and drove straight between ordered waypoints. The subsystems
-carried over from Part~A are described in those reports and are not
-explained again here; only the changes made for Part~B are given. Part~B adds
+carried over from Part~A are summarised in Section~\ref{sec:guidance},
+with the changes made for Part~B. Part~B adds
 walls, which are known from a map, and obstacles, which are not known in
 advance and can only be detected by onboard sensors as the vehicle
 moves. This turns a tracking problem into a planning problem. The
@@ -111,8 +111,7 @@ instead, it is stated as such: the requirement is then
 $0.40 + 0.15 = 0.55$~m.
 
 Figure~\ref{fig:architecture} shows the architecture and
-Table~\ref{tab:io} the inputs, outputs and rate of each subsystem. The
-mission planner runs once, before the vehicle moves. During the mission
+Table~\ref{tab:io} the inputs, outputs and rate of each subsystem. During the mission
 the state estimator supplies the state estimate
 $\hat{\mathbf{x}} = [\hat{x}\ \hat{y}\ \hat{\theta}]^{\top}$, guidance
 turns the path into a heading command, the reactive avoidance layer
