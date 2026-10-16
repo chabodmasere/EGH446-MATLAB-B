@@ -130,25 +130,34 @@ C = struct('plan', [0.90 0.55 0.00], 'astar', [0.40 0.40 0.45], 'drv', [0.00 0.4
 th = linspace(0, 2*pi, 60);
 WP = {'o', 'MarkerSize', 8, 'MarkerFaceColor', [0.85 0.1 0.45], 'MarkerEdgeColor', 'k'};
 
+% path colours as in the simulation's Robot Visualization key, used by
+% every path figure so the same path looks the same throughout
+SIMC = struct('drv', [0.35 0.85 1.00], 'plan', [1.00 0.85 0.20], 'astar', [0.30 0.30 0.35], ...
+              'rep', [0.78 0.45 1.00], 'clr', [0.95 0.15 0.20], 'wp', [1.00 0.45 0.72], 'outl', [0.15 0.15 0.20]);
+WPS = {'o', 'MarkerSize', 8, 'MarkerFaceColor', SIMC.wp, 'MarkerEdgeColor', 'k'};
+
 % fig_plan: the plan before the mission, with the inflated bands
 f = new_fig(430, 390);  ax = axes(f);  draw_map(ax, lm, true);
-h1 = plot(ax, r.astar_path(:,1), r.astar_path(:,2), ':', 'Color', C.astar, 'LineWidth', 1.8);
-h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '-', 'Color', C.plan, 'LineWidth', 1.6);
-h3 = plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WP{:});
+plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '-', 'Color', SIMC.outl, 'LineWidth', 3.0);
+h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '-', 'Color', SIMC.plan, 'LineWidth', 1.9);
+h1 = plot(ax, r.astar_path(:,1), r.astar_path(:,2), ':', 'Color', SIMC.astar, 'LineWidth', 1.6);
+h3 = plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WPS{:});
 h4 = plot(ax, r.p(1,1), r.p(1,2), 's', 'MarkerSize', 10, 'MarkerFaceColor', [0.1 0.5 0.9], 'MarkerEdgeColor', 'k');
 h5 = patch(ax, NaN, NaN, [1.00 0.80 0.80], 'EdgeColor', 'none');
 label_wps(ax, r.wp_ordered);
-legend(ax, [h4 h3 h1 h2 h5], {'Start', 'Waypoint', 'A* route', 'Smoothed path', 'Within 0.60 m of a wall'}, 'Location', 'southoutside', 'NumColumns', 3, 'FontSize', 8);
+legend(ax, [h4 h3 h1 h2 h5], {'Start', 'Waypoint', 'Raw A* route', 'Planned path', 'Within 0.60 m of a wall'}, 'Location', 'southoutside', 'NumColumns', 3, 'FontSize', 8);
 save_fig(f, figDir, 'fig_plan');
 
 % fig_mission: the whole mission as driven
 f = new_fig(430, 390);  ax = axes(f);  draw_map(ax, lm, false);
-ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R);
-% same line styles as fig_replan
-h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '--', 'Color', [0.55 0.55 0.55], 'LineWidth', 1.2);
-h5 = plot_replans(ax, r, [0.95 0.50 0.00], 2.6, '-');
-h6 = plot(ax, r.p(:,1), r.p(:,2), '-', 'Color', C.drv, 'LineWidth', 1.6);
-plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WP{:});
+ho = draw_obstacles(ax, obs, C.obs, CLEAR + OBS_R, th, OBS_R, SIMC.clr);
+% same colours and layering as fig_replan
+h5 = plot_replans(ax, r, [SIMC.rep 0.45], 7.0, '-');        % re-plans as a wide band underneath
+plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '-', 'Color', SIMC.outl, 'LineWidth', 3.6);
+h2 = plot(ax, r.wp_plot(:,1), r.wp_plot(:,2), '-', 'Color', SIMC.plan, 'LineWidth', 2.6);
+plot(ax, r.p(:,1), r.p(:,2), '-', 'Color', [0.00 0.25 0.45], 'LineWidth', 1.7);
+h6 = plot(ax, r.p(:,1), r.p(:,2), '-', 'Color', SIMC.drv, 'LineWidth', 0.9);   % thin, so the plan shows either side
+plot(ax, r.wp_ordered(:,1), r.wp_ordered(:,2), WPS{:});
 label_wps(ax, r.wp_ordered);
 legend(ax, [h2 h5 h6 ho], {'Planned path', 'Re-planned path', 'Driven path (true pose)', 'Obstacle, 0.40 m clearance (from surface)'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
 save_fig(f, figDir, 'fig_mission');
@@ -368,7 +377,7 @@ for q = 1:numel(r.history)
     Q(jump, :) = NaN;
     plot(ax, Q(:,1), Q(:,2), ls, 'Color', col, 'LineWidth', lw);
     k = min(max(round(r.history(q).step/5), 1), size(r.p, 1));       % 100 Hz step to 20 Hz sample
-    plot(ax, r.p(k,1), r.p(k,2), 'd', 'MarkerSize', 7, 'MarkerFaceColor', col, 'MarkerEdgeColor', 'k');
+    plot(ax, r.p(k,1), r.p(k,2), 'd', 'MarkerSize', 7, 'MarkerFaceColor', col(1:3), 'MarkerEdgeColor', 'k');
     prev = P;
 end
 end

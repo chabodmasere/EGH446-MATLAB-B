@@ -51,10 +51,10 @@ $0.61$~m from an obstacle and $0.63$~m from a wall, and each waypoint
 was passed within $0.24$~m. The estimator's
 noise model was calibrated against the measured sensor noise, a
 standard deviation of $0.10$~m and $2^{\circ}$, and the clearance
-margins are sized against its $0.08$~m RMS position error.
-The results show that combining global planning with sensor-driven
-re-planning gives reliable navigation among obstacles that are not on the
-map, and that speed, not planning, sets the limit on mission time.
+margins are sized against its measured error, $99$\% of which is below
+$0.18$~m. Re-planning was essential: with it switched off, five of eight
+test missions breached the clearance. A $1.5$~m/s speed limit was $26$\%
+faster but left only $0.09$~m of margin, so $1.0$~m/s was kept.
 
 \hspace{1em}\textit{Index Terms}---A* search, ant colony optimisation,
 autonomous ground robots, configuration space, Kalman filter, noise
@@ -86,8 +86,7 @@ advance and can only be detected by onboard sensors as the vehicle
 moves. This turns a tracking problem into a planning problem. The
 waypoints must be ordered to keep the route short, a path must be found
 around the walls, and that path must be revised whenever a sensor
-reveals an obstacle on it. The mission should also be completed in the
-shortest time that safety allows.
+reveals an obstacle on it.
 
 \subsection{Task and System Overview}
 \label{sec:overview}
@@ -132,9 +131,8 @@ re-planner tries a wider keep-out first, so that it routes around the
 open side of an obstacle rather than through a gap beside a wall.
 (iv) The estimator's noise model is measured from the simulator's
 noise-free pose rather than assumed, and every margin in the design is
-sized against the resulting estimate error. Where possible, each
-element is compared with a simpler alternative in the sections that
-follow.
+sized against the resulting estimate error. Each element is
+compared with a simpler alternative in the sections that follow.
 
 \begin{figure*}[t]
     \centering

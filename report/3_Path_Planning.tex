@@ -68,7 +68,7 @@ can therefore never make a leg less safe than the route it started from.
 
 \begin{figure}[!t]
     \centering
-    \reportfig{fig_plan_k2.png}
+    \reportfig{fig_plan_k3.png}
     \caption{Planned mission: A* route and smoothed path. Waypoints are
     numbered in visiting order.}
     \label{fig:plan}
@@ -91,8 +91,6 @@ same route. Its weaknesses are that the path is only optimal to within
 the eight grid directions, and that its cost grows with the number of
 grid points, about $2.1 \times 10^{5}$ here. Building the distance
 matrix took about $15$~s of the $17$~s planning time on a laptop.
-Planning happens before the vehicle moves and is not counted in the
-mission time.
 
 PSO removes the first weakness. It needs no gradient, so the clearance
 term is read straight from a lookup table, and it penalises turns
@@ -129,4 +127,7 @@ straight-line distance. Here two waypoints that are close together can be
 separated by a wall, so the cost $D_{ij}$ is the length of the A* path
 between points $i$ and $j$, the distance the vehicle must actually drive.
 All fifteen pairs among the start and the five waypoints are routed to
-build $D$, and the optimiser runs on $D$ as before.
+build $D$, and the optimiser runs on $D$ as before. The change matters:
+ordering by straight-line distance would have given a longer drive in
+$13$ of the $25$ missions of Section~\ref{sec:results}, by $8.6$\% on
+average and up to $32$\%.

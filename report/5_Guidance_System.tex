@@ -1,13 +1,12 @@
 % ============================================================
 % GUIDANCE SYSTEM AND PART A REUSE  (Requirement 4d)
 % ============================================================
-\section{Guidance System}
+\section{Guidance, Estimation and Control}
 \label{sec:guidance}
 
 \subsection{Subsystems Reused from Part A}
 All four Part~A subsystems were carried into Part~B
-(Table~\ref{tab:reuse}). They are described in the Part~A reports
-\cite{partA_est, partA_group}; only the changes are given here.
+(Table~\ref{tab:reuse}).
 
 \begin{table}[!t]
     \centering
@@ -110,9 +109,10 @@ $\mathbf{p}_{k}$:
 The index advances whenever the vehicle is within $1.0$~m of
 $\mathbf{p}_{k}$, so the target stays about $1.0$~m ahead on the path.
 This replaces the $5$~m look-ahead of Part~A \cite{partA_est}. Aiming
-$5$~m ahead was smooth on an open field, but on the walled map the aim
-point was already past a sharp corner while the vehicle was still short
-of it, so the vehicle cut the corner towards the wall. Following the path
+$5$~m ahead was smooth on an open field, but in development runs on the
+walled map the aim point was already past a sharp corner while the
+vehicle was still short of it, so the vehicle cut the corner towards
+the wall. Following the path
 point by point keeps the vehicle on the planned corner.
 
 \textbf{Waypoint capture.} The index may not pass the point where the
@@ -151,8 +151,8 @@ $\dot{x} = v\cos\theta$, $\dot{y} = v\sin\theta$, $\dot{\theta} = \omega$.
 
 \textbf{Heading loop.} While the turn-rate limit is inactive, the
 heading obeys $\dot{\theta} = K_{\theta}(\theta_{\text{safe}} - \theta)$:
-a first-order lag with time constant $1/K_{\theta} = 0.5$~s and no
-overshoot. The vehicle itself integrates the turn rate, so a constant
+for the unicycle model, a first-order lag with time constant
+$1/K_{\theta} = 0.5$~s and no overshoot. The vehicle itself integrates the turn rate, so a constant
 heading is reached with zero steady-state error and the integral and
 derivative terms of a PID controller are not needed. Beyond
 $|e_{\theta}| = \omega_{\max}/K_{\theta} = 36^{\circ}$ the limit takes
@@ -167,9 +167,8 @@ vehicle approaches at under $0.08$~m/s, so it can stop on it. The factor
 $\cos e_{\theta}$ couples speed to heading error: the vehicle slows while
 it turns onto a new heading, which shrinks its turn radius $v/\omega$
 when it most needs to turn. The floor of $0.1$ keeps it moving, because
-a steered vehicle cannot turn in place. At full speed the tightest turn,
-$v_{\max}/\omega_{\max} = 0.80$~m, sets the planner's minimum radius
-(Section~\ref{sec:planning}).
+a steered vehicle cannot turn in place. The tightest turn at full
+speed sets the planner's minimum radius (Section~\ref{sec:planning}).
 
 \textbf{Measured behaviour.} The speed command before $v_{\text{scale}}$
 was logged with $d_{\text{wp}}$, so $\cos e_{\theta}$, and hence the
@@ -178,8 +177,8 @@ Section~\ref{sec:results} the heading error had a median of
 $4.2^{\circ}$, was below $30^{\circ}$ for $97$\% of the time and beyond
 the $36^{\circ}$ saturation point for $2.9$\%. The true turn rate,
 from the noise-free pose, reached $\omega_{\max}$ for $3.1$\% of the
-driving time, and the speed limit governed $92$\% of it, so the
-controller works mostly in its linear range.
+driving time, and the speed command was at its limit for $92$\% of the
+driving time, so the controller works mostly in its linear range.
 
 \textbf{Gain tuning.} Missions $1$ to $8$ were repeated with
 $K_{\theta} = 0.5$, $1$, $2$ and $3$~s$^{-1}$, and with $K_{d} = 0.4$,
@@ -216,8 +215,6 @@ Ground truth is the vehicle pose before the simulator adds measurement
 noise (Section~\ref{sec:estimator}). Clearance, cross-track error and
 closest approach are measured from it. Clearance by the state estimate,
 which is what the vehicle itself believed, is given for comparison.
-Clearance is measured from the vehicle's centre to a wall face or an
-obstacle's surface and must be at least $0.40$~m.
 
 \begin{table}[!t]
     \centering
@@ -262,7 +259,7 @@ at the moment of capture. Figure~\ref{fig:mission} shows one mission.
 
 \begin{figure}[!t]
     \centering
-    \reportfig{fig_mission_k2.png}
+    \reportfig{fig_mission_k3.png}
     \caption{Mission 9 as driven, by the true pose. Diamonds mark where
     the path was re-planned.}
     \label{fig:mission}

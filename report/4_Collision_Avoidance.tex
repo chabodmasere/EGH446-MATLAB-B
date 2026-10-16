@@ -100,7 +100,10 @@ obstacle. Obstacles more than $108^{\circ}$ off the heading have been
 passed and are ignored.
 Each lidar beam shorter than $1.2$~m adds a repulsion of the same form,
 with gain $k_{\text{wall}}$, away from the wall it hit. The gains are
-$k_{\text{rep}} = k_{\text{tan}} = 1.0$ and $k_{\text{wall}} = 1.8$. The
+$k_{\text{rep}} = k_{\text{tan}} = 1.0$ and $k_{\text{wall}} = 1.8$, set by
+hand in simulation. The reach equals the planner's keep-out, so the
+obstacle term acts only once the vehicle is already inside it, that is,
+when re-planning has not kept it clear. The
 heading of the summed vector is low-pass filtered with a time constant
 of about $0.5$~s and sent to the controller as $\theta_{\text{safe}}$,
 with a speed factor $v_{\text{scale}} \in [0.3, 1]$ that slows the
