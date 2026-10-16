@@ -128,7 +128,6 @@ C = struct('plan', [0.90 0.55 0.00], 'astar', [0.40 0.40 0.45], 'drv', [0.00 0.4
            'rep', [0.55 0.20 0.85], 'lim', [0.80 0.10 0.10], ...
            'obs', [0.85 0.15 0.15; 0.15 0.60 0.20; 0.15 0.35 0.85]);
 th = linspace(0, 2*pi, 60);
-WP = {'o', 'MarkerSize', 8, 'MarkerFaceColor', [0.85 0.1 0.45], 'MarkerEdgeColor', 'k'};
 
 % path colours as in the simulation's Robot Visualization key, used by
 % every path figure so the same path looks the same throughout
@@ -199,7 +198,6 @@ rb = M{best.k};  ob = obs(best.o, 1:2);  rp = rb.p(best.k0, :);  Pn = best.Pn;
 bx = [min([Pn(:,1); ob(1); rp(1)]) - 1, max([Pn(:,1); ob(1); rp(1)]) + 1];
 by = [min([Pn(:,2); ob(2); rp(2)]) - 1, max([Pn(:,2); ob(2); rp(2)]) + 1];
 cx = mean(bx);  cy = mean(by);  hw = max(diff(bx), diff(by))/2;
-ORANGE = [0.95 0.50 0.00];
 f = new_fig(400, 420);  ax = axes(f);  draw_map(ax, lm, false);
 % colours as in the simulation's Robot Visualization key (draw_lidar_view)
 SIM = struct('drv', [0.35 0.85 1.00], 'plan', [1.00 0.85 0.20], 'astar', [0.55 0.55 0.60], ...

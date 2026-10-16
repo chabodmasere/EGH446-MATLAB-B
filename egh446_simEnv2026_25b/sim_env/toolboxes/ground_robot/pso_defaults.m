@@ -18,8 +18,8 @@ function d = pso_defaults()
 %   is the controller's, r = v/omega. At v_max and omega_max that is 0.8 m.
 %   r_min = 1.0 m leaves omega headroom to correct tracking error mid-turn.
 
-    v_max     = 1;
-    omega_max = 2*pi/5;
+    v_max     = 1;             %#ok<NASGU> documents the turn limit below
+    omega_max = 2*pi/5;        %#ok<NASGU>
     r_min     = 1.0;                    % [m], vs v_max/omega_max = 0.8 m
 
     d = struct('particles', 30, 'iterations', 150, ...

@@ -8,7 +8,7 @@
 %   order_check(dirn)   dirn holds the base_XX.mat files from batch_missions
 
 function order_check(dirn)
-f = dir(fullfile(dirn, 'base_*.mat'));  ex = [];  diffn = 0;
+f = dir(fullfile(dirn, 'base_*.mat'));  ex = [];
 P = perms(2:6);
 for k = 1:numel(f)
     r = load(fullfile(f(k).folder, f(k).name));

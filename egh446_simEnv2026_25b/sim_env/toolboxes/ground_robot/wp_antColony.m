@@ -46,7 +46,6 @@ function [wp_ordered, dist_cum, history] = wp_antColony(wp_list, x0, D, opt)
 
         for j = 1:ants % run set of ants to add pheromones
             unvisted_wps = true(N,1);
-            xc = x0;
             ant_dist = 0;
 
             for k = 1:N % iterate through path

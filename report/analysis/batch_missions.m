@@ -75,7 +75,7 @@ for seed = seeds
         r.history = path_store('history');
         r.replan_cpu = obstacle_replan('stats');
         if seed == 1 || ~exist(fullfile(outDir, 'map.mat'), 'file')
-            obstacles = b('obstacles'); logical_map = b('logical_map'); %#ok<NASGU>
+            obstacles = b('obstacles'); logical_map = b('logical_map');
             save(fullfile(outDir, 'map.mat'), 'obstacles', 'logical_map');
         end
         save(fullfile(outDir, sprintf('%s_%02d.mat', tag, seed)), '-struct', 'r');
