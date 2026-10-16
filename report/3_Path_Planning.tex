@@ -68,40 +68,21 @@ can therefore never make a leg less safe than the route it started from.
 
 \begin{figure}[!t]
     \centering
-    \reportfig{fig_plan.png}
+    \reportfig{fig_plan_k2.png}
     \caption{Planned mission: A* route and smoothed path. Waypoints are
     numbered in visiting order.}
     \label{fig:plan}
 \end{figure}
 
 \subsection{Parameters}
-Table~\ref{tab:planner} lists the planner parameters. The curvature
-limit follows from the controller limits of Section~\ref{sec:guidance}:
+The swarm uses $30$ particles for $150$ iterations per leg, with
+inertia falling from $0.9$ to $0.4$ and acceleration weights of $1.5$,
+and the cost weights are $k_{\kappa} = 1$, $k_{t} = 100$, $k_{s} = 20$
+and $k_{h} = 10^{4}$, so that a breach of the hard clearance outweighs
+every other term. The curvature limit follows from the controller limits of Section~\ref{sec:guidance}:
 the tightest turn the vehicle can hold is the speed limit over the
 turn-rate limit, $v_{\max}/\omega_{\max} = 0.80$~m, and $r_{\min} = 1.0$~m
 leaves turn rate in reserve to correct tracking error during a turn.
-
-\begin{table}[!t]
-    \centering
-    \caption{Path Planner Parameters}
-    \label{tab:planner}
-    \footnotesize
-    \begin{tabularx}{\columnwidth}{@{}l c >{\raggedright\arraybackslash}X@{}}
-        \toprule
-        \textbf{Parameter} & \textbf{Value} & \textbf{Purpose} \\
-        \midrule
-        Grid spacing             & 0.1 m   & Resolution of the A* search \\
-        Hard clearance $c_{h}$   & 0.60 m  & Wall inflation: clearance plus margin \\
-        Soft clearance $c_{s}$   & 0.90 m  & Preferred distance from walls \\
-        Control point spacing    & 1.0 m   & B-spline resolution \\
-        Lateral band             & $\pm$1.0 m & Limit on each offset \\
-        Particles, iterations    & 30, 150 & Swarm budget per leg \\
-        Inertia; acceleration    & 0.9 to 0.4; 1.5 & Standard PSO weights \\
-        Minimum radius $r_{\min}$ & 1.0 m  & Turning limit \\
-        $k_{\kappa}, k_{t}, k_{s}, k_{h}$ & 1, 100, 20, $10^{4}$ & Smooth, turn, soft wall, hard wall \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
 
 \subsection{Advantages and Disadvantages}
 A* is complete and optimal on the grid: if a route exists at the
@@ -141,21 +122,11 @@ demand a turn of zero radius, which the vehicle can only approximate by
 cutting into the clearance margin.
 
 \subsection{Waypoint Ordering}
-The visiting order is a travelling salesman problem with a fixed start
-and no return leg. The cost of travelling between points $i$ and $j$ is
-the length $D_{ij}$ of the A* path between them, not the straight-line
-distance, because two waypoints that are close together can be separated
-by a wall. All fifteen pairs among the start and the five waypoints are
-routed to build $D$.
-
-The order is found with the ant colony optimiser developed and tuned in
-Part~A \cite{dorigo1997, partA_group}, unchanged except for the cost
-matrix. Each ant builds a tour by choosing its next waypoint at random,
-favouring short legs and legs that earlier ants found on short tours.
-With five waypoints there
-are only $5! = 120$ orderings, so the result can be checked exhaustively:
-the optimiser returned the optimal order in all $25$ missions of
-Section~\ref{sec:results}. Nearest neighbour, the simplest alternative,
-was optimal in $17$ of the $25$ and up to $9.8$\% longer in the rest.
-Brute force would serve equally well at this size; the optimiser was
-kept because it was already validated and scales to more waypoints.
+The visiting order is found with the waypoint optimiser of Part~A
+\cite{dorigo1997, partA_group}, unchanged except for its cost. In
+Part~A the field was empty and the cost between two points was the
+straight-line distance. Here two waypoints that are close together can be
+separated by a wall, so the cost $D_{ij}$ is the length of the A* path
+between points $i$ and $j$, the distance the vehicle must actually drive.
+All fifteen pairs among the start and the five waypoints are routed to
+build $D$, and the optimiser runs on $D$ as before.

@@ -49,8 +49,8 @@ JUMP      = 2.0;     % [m] a pose jump this large means a new run: clear the map
 MAX_FPS   = 10;      % redraw cap so the overlay never slows the simulation (was 30)
 
 % ---------- Look ----------
-FIELD_COL   = [0.00 0.62 0.72];
-FIELD_ALPHA = 0.13;
+FIELD_COL   = [0.30 0.92 1.00];    % bright cyan: reads on the dark arena floors (was dark teal)
+FIELD_ALPHA = 0.28;                % was 0.13: too faint on the black floor
 MAP_COL     = [1.00 0.45 0.00];
 RAMP        = [0.86 0.10 0.10;    % close
                1.00 0.66 0.00;    % caution
@@ -198,7 +198,7 @@ add_legend(ax, fieldCol, mapCol, common);
 end
 
 % =====================================================================
-function add_legend(ax, fieldCol, mapCol, common)
+function add_legend(ax, fieldCol, ~, common)
 % Key to everything drawn on the Robot Visualization axes, in its own
 % small axes to the right of the map. Each entry copies the look of the
 % real object, so the key also covers the overlays drawn by draw_avoid_view
@@ -213,7 +213,6 @@ delete(findall(fig, 'Tag', 'arenaKey'));       % key from the previous run
 ink = ax.XColor;
 RED    = [0.95 0.15 0.20];     % draw_avoid_view
 VIOLET = [0.78 0.45 1.00];     % obstacle_replan
-PINK   = [1.00 0.45 0.72];     % kong waypoint sprites
 
 trailCol = [0 0 1];
 tr = findobj(ax, 'Type', 'line', 'Marker', '.', 'LineStyle', '-');
@@ -222,36 +221,29 @@ if ~isempty(tr), trailCol = tr(1).Color; end
 mk = @(m, face, edge) {'LineStyle', 'none', 'Marker', m, 'MarkerSize', 8, ...
                        'MarkerFaceColor', face, 'MarkerEdgeColor', edge, 'LineWidth', 1.2};
 
+% Kept short on purpose: only what a viewer needs to read the run. The
+% finer overlays (raw A* route, avoidance arrows and arc, mapped walls,
+% robot ring) are still drawn but not listed.
 key = {
     {'Color', trailCol, 'LineWidth', 1.5},                              'Path driven'
-    {'Color', [1.00 0.85 0.20], 'LineStyle', '--', 'LineWidth', 1.5},   'Planned path (A* + PSO)'
-    {'Color', [0.55 0.55 0.60], 'LineStyle', ':', 'LineWidth', 0.8},    'Raw A* route'
+    {'Color', [1.00 0.85 0.20], 'LineStyle', '--', 'LineWidth', 1.5},   'Planned path'
     {'Color', VIOLET, 'LineStyle', ':', 'LineWidth', 2.4},              'Re-planned path'
-    {'Color', VIOLET, 'LineStyle', '--', 'LineWidth', 1.0},             'Re-plan keep-out (0.8 m)'
-    {'Color', RED, 'LineWidth', 3.5},                                   'Avoidance active'
-    {'Color', RED, 'LineWidth', 2.2},                                   'Avoidance: heading commanded'
-    {'Color', [0.75 0.75 0.80], 'LineStyle', ':', 'LineWidth', 1.8},    'Avoidance: heading from guidance'
-    {'Color', RED, 'LineStyle', '--', 'LineWidth', 1.5},                'Avoidance: predicted arc'
+    'keepoutIcon',                                                      'Re-plan keep-out (0.8 m)'
+    {'Color', RED, 'LineWidth', 3.5},                                   'Avoiding obstacle'
     {'Color', fieldCol, 'LineWidth', 6},                                'Lidar scan'
-    mk('.', mapCol, mapCol),                                            'Walls mapped by lidar'
-    mk('o', 'none', [1.00 0.66 0.00]),                                  'Robot clearance ring (0.40 m)'
     };
 
 wp = findobj(ax, 'Type', 'line', 'Marker', 'x');
 if isempty(findall(ax, 'Tag', 'arenaFruit'))            % plain map: squares and crosses
     key(end+1, :) = {mk('s', [0.6 0.6 0.6], ink), 'Obstacle'};
-elseif ~isempty(wp) && strcmp(wp(1).Visible, 'on')      % fruit styles keep the crosses
-    key(end+1, :) = {mk('o', [1.00 0.20 0.25], [1 1 1]), 'Obstacle (fruit)'};
-    key(end+1, :) = {{'Color', RED, 'LineWidth', 1.5}, 'Obstacle clearance (0.55 m from centre)'};
-else                                                    % kong
-    key(end+1, :) = {mk('o', [1.00 0.20 0.25], [1 1 1]), 'Obstacle (fruit)'};
-    key(end+1, :) = {{'Color', RED, 'LineWidth', 1.5}, 'Obstacle clearance (0.55 m from centre)'};
-    key(end+1, :) = {mk('o', PINK, ink), 'Waypoint (visiting order)'};
-    key(end+1, :) = {mk('^', PINK, ink), 'Final waypoint (HELP!)'};
+else                                                    % fruit sprite inside its clearance ring
+    key(end+1, :) = {'fruitIcon', 'Obstacle + clearance'};
 end
 if ~isempty(wp) && strcmp(wp(1).Visible, 'on')
     key(end+1, :) = {{'LineStyle', 'none', 'Marker', 'x', 'MarkerSize', 8, ...
                       'Color', wp(1).Color, 'LineWidth', 1.5}, 'Waypoint'};
+else                                                    % kong: Pauline's items
+    key(end+1, :) = {'wpIcon', 'Waypoint'};
 end
 
 % map on the left 3/4 of the figure, key in the strip to its right
@@ -265,11 +257,29 @@ kax = axes('Parent', fig, 'Units', 'normalized', ...
            'XColor', ink, 'YColor', ink, 'LineWidth', 1, ...
            'HandleVisibility', 'off', 'HitTest', 'off', 'PickableParts', 'none', ...
            'Tag', 'arenaKey');
+kax.Toolbar.Visible = 'off';           % no hover toolbar (the "..." button) on the key
+disableDefaultInteractivity(kax);
 text(kax, 0.5, 0.75, 'KEY', 'Color', ink, 'FontWeight', 'bold', 'FontSize', 9, ...
      'FontName', ax.FontName, 'HorizontalAlignment', 'center');
 for k = 1:n
     p = key{k, 1};
-    if any(strcmp(p, 'Marker'))
+    if ischar(p) && strcmp(p, 'fruitIcon')
+        % the map's own obstacle sprite and clearance ring
+        iax = key_icon_axes(fig, kax, k, n, 0.62);
+        draw_fruit(iax, 0, 0, 1);
+        th = linspace(0, 2*pi, 48);
+        line(iax, 0.55*cos(th), 0.55*sin(th), 'Color', RED, 'LineWidth', 1.5);
+    elseif ischar(p) && strcmp(p, 'keepoutIcon')
+        % the dashed violet ring obstacle_replan draws round a detected obstacle
+        iax = key_icon_axes(fig, kax, k, n, 0.62);
+        th = linspace(0, 2*pi, 48);
+        line(iax, 0.55*cos(th), 0.55*sin(th), 'Color', VIOLET, 'LineStyle', '--', 'LineWidth', 1.0);
+    elseif ischar(p) && strcmp(p, 'wpIcon')
+        % the map's own waypoint sprite (first item, Pauline's hat)
+        iax = key_icon_axes(fig, kax, k, n, 0.65);
+        draw_pickup(iax, 0, 0, 1, 2);
+        delete(findall(iax, 'Type', 'text'));      % no visiting-order number in the key
+    elseif any(strcmp(p, 'Marker'))
         line(kax, 0.10, k + 0.75, p{:});
     else
         line(kax, [0.03 0.17], [k k] + 0.75, p{:});
@@ -277,6 +287,24 @@ for k = 1:n
     text(kax, 0.22, k + 0.75, key{k, 2}, 'Color', ink, 'FontSize', 8, ...
          'FontName', ax.FontName, 'VerticalAlignment', 'middle');
 end
+end
+
+% =====================================================================
+function iax = key_icon_axes(fig, kax, k, n, half)
+% Small square axes over row K of the key, so a map sprite can be drawn in
+% it at its true shape (the key axes themselves are not equal-aspect).
+kp = kax.Position;  fp = fig.Position;
+rowH = kp(4)/(n + 1.5);
+sz_h = 1.0*rowH;  sz_w = sz_h*fp(4)/fp(3);
+yc = kp(2) + kp(4)*(1 - (k + 0.75)/(n + 1.5));
+iax = axes('Parent', fig, 'Units', 'normalized', ...
+           'Position', [kp(1) + 0.10*kp(3) - sz_w/2, yc - sz_h/2, sz_w, sz_h], ...
+           'XLim', [-half half], 'YLim', [-half half], 'DataAspectRatio', [1 1 1], ...
+           'Visible', 'off', 'HandleVisibility', 'off', 'HitTest', 'off', ...
+           'PickableParts', 'none', 'Tag', 'arenaKey');
+hold(iax, 'on');
+iax.Toolbar.Visible = 'off';           % no hover toolbar (the "..." button) over the key
+disableDefaultInteractivity(iax);
 end
 
 % =====================================================================

@@ -2,8 +2,8 @@ function controller_params()
 % CONTROLLER_PARAMS Initialise controller tuning parameters
 %
 % Copy of sim_env/controller_params.m used only by the report's batch runs:
-% identical, except that v_max and capture_radius can be overridden through
-% the global REPORT_OVERRIDE for the parameter sweep.
+% identical, except that v_max, capture_radius, K_theta and K_dist can be
+% overridden through the global REPORT_OVERRIDE for the parameter sweeps.
 %
 % Places controller parameters into the MATLAB base workspace so they
 % can be accessed by the Simulink controller blocks.
@@ -11,7 +11,7 @@ function controller_params()
 %% Controller Parameters
 
 % Heading controller proportional gain
-K_theta = 1;
+K_theta = 2;               % was 1: doubled after the gain test (report, Controller)
 
 % Distance-based speed gain
 K_dist = 0.75;
@@ -39,6 +39,8 @@ global REPORT_OVERRIDE
 if isstruct(REPORT_OVERRIDE)
     if isfield(REPORT_OVERRIDE, 'v_max'),          v_max = REPORT_OVERRIDE.v_max; end
     if isfield(REPORT_OVERRIDE, 'capture_radius'), capture_radius = REPORT_OVERRIDE.capture_radius; end
+    if isfield(REPORT_OVERRIDE, 'K_theta'),        K_theta = REPORT_OVERRIDE.K_theta; end
+    if isfield(REPORT_OVERRIDE, 'K_dist'),         K_dist = REPORT_OVERRIDE.K_dist; end
 end
 
 %% Export parameters to base workspace

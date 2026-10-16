@@ -68,14 +68,15 @@ obstacle position they use comes from the onboard detector.
     obstacle and a wall.
     \item \textit{Hand over.} The new path is published to guidance.
 \end{enumerate}
-The $0.8$~m keep-out is the required $0.55$~m from an obstacle's centre
-plus $0.25$~m for detection error and corner cutting.
+The $0.8$~m keep-out, measured from the obstacle's centre, is the
+$0.55$~m that the $0.40$~m clearance requires there, plus $0.25$~m for
+detection error and corner cutting.
 Figure~\ref{fig:replan} shows a re-plan.
 
 \begin{figure}[!t]
     \centering
-    \reportfig{fig_replan.png}
-    \caption{A re-plan in mission 24. The path before the re-plan
+    \reportfig{fig_replan_k2.png}
+    \caption{A re-plan in mission 13. The path before the re-plan
     (dashed) ran through an obstacle missing from the map. The diamond
     marks the vehicle's position when the obstacle was confirmed,
     $4.7$~m before it; the vehicle then follows the re-planned path
@@ -123,8 +124,7 @@ frame from the state estimate:
 \end{equation}
 Any error in the estimate therefore becomes an error in the obstacle's
 position. Filtering repeated detections reduces that error, and the
-margin in the keep-out absorbs what remains. Table~\ref{tab:distances}
-collects the distances used by both layers.
+margin in the keep-out absorbs what remains.
 
 \begin{figure}[!t]
     \centering
@@ -150,31 +150,10 @@ collects the distances used by both layers.
         \node[align=left, anchor=west] at (2.7,-2.9) {detector: $120^{\circ}$};
     \end{tikzpicture}
     \caption{Sensing geometry to scale. An obstacle is shown with its
-    clearance ring (solid, $0.55$~m from its centre) and its keep-out
-    (dashed, $0.8$~m).}
+    clearance ring (solid, $0.40$~m from its surface) and its keep-out
+    (dashed, $0.8$~m from its centre).}
     \label{fig:sensing}
 \end{figure}
-
-\begin{table}[!t]
-    \centering
-    \caption{Distances Used by the Two Layers}
-    \label{tab:distances}
-    \footnotesize
-    \begin{tabularx}{\columnwidth}{@{}c l >{\raggedright\arraybackslash}X@{}}
-        \toprule
-        \textbf{Value} & \textbf{From} & \textbf{Purpose} \\
-        \midrule
-        0.40 m & wall face         & Required clearance \\
-        0.55 m & obstacle centre   & Required clearance ($0.40 + 0.15$) \\
-        0.75 m & obstacle centre   & Detections merged into one obstacle \\
-        1.0 m  & obstacle centre   & Path this close triggers a re-plan \\
-        0.8 m  & obstacle centre   & Keep-out for A* and PSO \\
-        0.8 m  & obstacle centre   & Reactive reach $d_{r}$ \\
-        0.7 m  & obstacle centre   & Smallest reach, near a waypoint \\
-        1.2 m  & wall face         & Lidar repulsion starts ($0.5$~m near a waypoint) \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
 
 \subsection{Integration with the Guidance Subsystem}
 The two layers meet guidance at different points
@@ -189,8 +168,9 @@ The reactive layer also hands control back without a switch. When no
 obstacle is within reach, its obstacle repulsion is zero and its output
 is the guidance heading, filtered and adjusted only by any wall
 repulsion. Near a waypoint the reach shrinks to the distance to the
-waypoint, though never below $0.7$~m, and the tangential term fades in
-proportion, so an obstacle beside a waypoint cannot hold the vehicle
+waypoint, though never below $0.7$~m, the lidar wall reach likewise
+shrinks from $1.2$~m to no less than $0.5$~m, and the tangential term
+fades in proportion, so an obstacle beside a waypoint cannot hold the vehicle
 away from it.
 
 \subsection{Limitations}
@@ -205,8 +185,8 @@ distribution (Section~\ref{sec:estimator}) but are fixed; they do not
 shrink or grow with the filter's covariance during a mission. \textit{Local minima.} The reactive layer can stall where
 repulsion balances attraction, for example in a gap narrower than the
 keep-out; re-planning removes most such cases by routing round the open
-side. \textit{Computation.} A re-plan took $0.20$~s to compute on
-average and up to $0.65$~s over the $25$ missions of
+side. \textit{Computation.} A re-plan took $0.22$~s to compute on
+average and up to $0.92$~s over the $25$ missions of
 Section~\ref{sec:results}. The simulation clock waits for it, so it is
 not counted in the mission time; a real vehicle would travel up to
 about $0.6$~m on the old path first.

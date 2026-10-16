@@ -7,7 +7,7 @@ function controller_params()
 %% Controller Parameters
 
 % Heading controller proportional gain
-K_theta = 1;
+K_theta = 2;               % was 1: doubled after the gain test (report, Controller)
 
 % Distance-based speed gain
 K_dist = 0.75;

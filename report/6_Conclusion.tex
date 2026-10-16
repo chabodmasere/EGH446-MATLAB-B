@@ -17,27 +17,27 @@ controller and waypoint optimiser were reused, and guidance was
 extended to follow a path that can change during the mission.
 
 Over $25$ random missions the vehicle captured every waypoint, passing
-each within $0.23$~m, and, by the simulator's noise-free pose, never
-came closer than $0.58$~m to an obstacle or $0.65$~m to a wall, a
-margin of at least $0.18$~m over the required $0.40$~m. Re-planning is
-what kept the obstacle clearance: with it switched off, six of eight
+each within $0.24$~m, and, by the simulator's noise-free pose, never
+came closer than $0.61$~m to an obstacle or $0.63$~m to a wall, a
+margin of at least $0.20$~m over the required $0.40$~m. Re-planning is
+what kept the obstacle clearance: with it switched off, five of eight
 test missions breached it. Logging the noise-free pose also allowed the
 sensor noise to be measured rather than assumed. It is zero-mean and
 Gaussian with a standard deviation of $0.10$~m and $2^{\circ}$, and
 recalibrating the Kalman filter to it made the filter consistent
-without loss of accuracy. A mission took $123$~s on average, and of
-the three speed limits tested, $1.0$~m/s was the fastest that kept the
-clearance.
+without loss of accuracy. Retuning the heading gain from $1$ to $2$
+halved the cross-track error and shortened the mission, which took
+$117$~s on average.
 
 The main limitation is the trade between speed and margin. At
-$1.5$~m/s the mission was $23$\% faster but one test mission breached
-the clearance, because the vehicle cannot follow curves planned for a
-$1.0$~m turn radius at that speed, and its own estimate can be over
-$0.1$~m from the truth near an obstacle. Planning for a turn radius
+$1.5$~m/s the mission was $26$\% faster and still kept the clearance,
+but with only $0.09$~m to spare, less than the estimate error, and at
+$2.0$~m/s one mission breached it, because the vehicle cannot follow
+curves planned for a $1.0$~m turn radius at those speeds. Planning for a turn radius
 that grows with the speed limit, and margins that grow with the
 estimator's uncertainty, would allow a faster mission without losing
 the margin. Two further limits apply outside simulation: obstacles are
-assumed static, and each re-plan takes up to $0.65$~s that the
+assumed static, and each re-plan takes up to $0.92$~s that the
 simulation does not charge for. An incremental planner such as D* Lite
 \cite{koenig2002}, which repairs the previous search instead of
 repeating it, would address the second.

@@ -19,8 +19,8 @@ All four Part~A subsystems were carried into Part~B
         \textbf{Subsystem} & \textbf{Reused} & \textbf{Modification} \\
         \midrule
         State estimator   & Yes    & Same seven-state linear Kalman filter at $100$~Hz. Each pose sample is used in one update, on the step it arrives. $R$ and $Q$ recalibrated from the measured noise (Section~\ref{sec:estimator}). \\
-        Waypoint guidance & Partly & Capture logic kept. Straight-line tracking replaced by following the planned path. \\
-        Controller        & Yes    & Same structure. Speed limit halved to $1.0$~m/s; speed also scaled by the avoidance layer. \\
+        Waypoint guidance & Partly & Capture logic kept, radius reduced to $0.4$~m. Straight-line tracking and the $5$~m look-ahead replaced by following the planned path. \\
+        Controller        & Yes    & Same structure. Speed limit $1.0$~m/s; heading gain raised from $1$ to $2$~s$^{-1}$ (Section~\ref{sec:controller}); speed also scaled by the avoidance layer. \\
         Waypoint ordering & Yes    & Same ant colony optimiser. Cost is A* path length; five waypoints. \\
         \bottomrule
     \end{tabularx}
@@ -65,7 +65,7 @@ $1.4^{\circ}$ \cite{partA_est}. That $R$ was carried into Part~B. The
 Part~B model also outputs the vehicle pose before noise is added, so
 the noise can be measured directly as the measured minus the noise-free
 pose. Over the $25$ missions of Section~\ref{sec:results}
-(Table~\ref{tab:noise}) it is zero-mean, uncorrelated between axes and
+($\approx 60\,000$ samples) it is zero-mean, uncorrelated between axes and
 Gaussian in shape, with a standard deviation of $0.10$~m per axis and
 $1.96^{\circ}$ in heading. The
 Part~B simulator is therefore three times less noisy in position than
@@ -74,29 +74,9 @@ ten times too large in position. Consecutive samples are correlated ($0.5$) and 
 $0.1$~s apart are not; the filter treats every $20$~Hz sample as
 independent, which slightly overstates the information it receives.
 
-\begin{table}[!t]
-    \centering
-    \caption{Measured Sensor Noise, 25 Missions}
-    \label{tab:noise}
-    \footnotesize
-    \begin{tabularx}{\columnwidth}{@{}X c c c@{}}
-        \toprule
-        & $x$ & $y$ & $\theta$ \\
-        \midrule
-        Mean                           & $-0.001$ m & $-0.001$ m & $-0.06^{\circ}$ \\
-        Standard deviation             & 0.100 m & 0.097 m & $1.96^{\circ}$ \\
-        Autocorrelation, 0.05 s / 0.10 s & 0.50 / 0.00 & 0.52 / 0.03 & 0.51 / 0.02 \\
-        Kurtosis (Gaussian: 3)         & 3.22 & 2.97 & 3.07 \\
-        \midrule
-        \multicolumn{4}{@{}l}{Correlation between $x$ and $y$: $0.02$; \ $59\,624$ pose samples at $20$~Hz} \\
-        \multicolumn{4}{@{}l}{Forward speed: mean $-0.008$~m/s, standard deviation $0.105$~m/s} \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
 The speed noise was measured the same way, against the speed
 differenced from the noise-free pose. Its standard deviation,
-$0.105$~m/s, confirms the $\sigma_{v} = 0.1$~m/s carried over from
+$0.107$~m/s, confirms the $\sigma_{v} = 0.1$~m/s carried over from
 Part~A; its correlation in time cannot be resolved, because the
 reference speed is itself derived from the $20$~Hz pose.
 $R$ was set to the measured values, $\sigma_{xy} = 0.10$~m and
@@ -107,18 +87,18 @@ $q_{\omega} = 5$~rad$^{2}$/s$^{3}$. Both settings were chosen by
 replaying the filter offline on the logged measurements of missions
 $1$ to $8$ over $60$ combinations of $\sigma_{xy}$, $q_{v_{x}, v_{y}}$
 and $q_{\omega}$, scored against the noise-free pose. Accuracy is flat
-near the optimum: the old and new settings both give $0.079$~m RMS
-position error, against $0.078$~m for the best combination tested. What
+near the optimum: the old and new settings both give $0.081$~m RMS
+position error, against $0.080$~m for the best combination tested. What
 the recalibration fixes is consistency. A consistent filter has a mean
 normalised innovation squared (NIS) equal to the pose dimension, $3$;
-the old $R$ gave $0.85$, a filter that overstates its own uncertainty,
+the old $R$ gave $0.89$, a filter that overstates its own uncertainty,
 and the new one gives $2.5$. Covariance calibration was the main
 weakness identified in Part~A \cite{partA_est}. The filter reduces the planar position error
-from $0.139$~m RMS in the raw measurement to $0.079$~m, and $99$\% of
+from $0.139$~m RMS in the raw measurement to $0.080$~m, and $99$\% of
 its errors are below $0.18$~m. That value is what the $0.20$~m tracking
 margin of Section~\ref{sec:planning} and the $0.25$~m obstacle margin of
 Section~\ref{sec:avoidance} are sized against. In closed loop on missions
-$1$ to $8$ (with the earlier $0.8$~m capture radius), the recalibrated filter also raised the worst true
+$1$ to $8$ (with the earlier $0.8$~m capture radius and $K_{\theta} = 1$), the recalibrated filter also raised the worst true
 clearance slightly, from $0.57$ to $0.59$~m to an obstacle and from
 $0.63$ to $0.66$~m to a wall.
 
@@ -134,6 +114,11 @@ $\mathbf{p}_{k}$:
 \end{equation}
 The index advances whenever the vehicle is within $1.0$~m of
 $\mathbf{p}_{k}$, so the target stays about $1.0$~m ahead on the path.
+This replaces the $5$~m look-ahead of Part~A \cite{partA_est}. Aiming
+$5$~m ahead was smooth on an open field, but on the walled map the aim
+point was already past a sharp corner while the vehicle was still short
+of it, so the vehicle cut the corner towards the wall. Following the path
+point by point keeps the vehicle on the planned corner.
 
 \textbf{Waypoint capture.} The index may not pass the point where the
 current waypoint lies on the path, so the vehicle cannot skip a waypoint
@@ -147,20 +132,73 @@ guidance adopts it on the next step. If the leg being driven was
 re-planned, the index restarts at the beginning of the new leg, which
 is the vehicle's own position at the time of re-planning.
 
-\textbf{Controller.} The turn rate is proportional to the heading error
-$e_{\theta} = \theta_{\text{safe}} - \hat{\theta}$, and the speed to the
-distance to the waypoint, reduced in turns and near obstacles:
+\subsection{Controller}
+\label{sec:controller}
+The controller is the proportional heading and speed law of Part~A,
+built from Simulink gain, saturation and trigonometry blocks, with the
+heading gain retuned for Part~B. The
+heading error is wrapped to $[-\pi, \pi]$,
+$e_{\theta} = \operatorname{wrap}(\theta_{\text{safe}} - \hat{\theta})$,
+and the commands are
 \begin{equation}
-    \omega = K_{\theta}\,e_{\theta}, \qquad
-    v = K_{d}\,d_{\text{wp}}\cos e_{\theta}\; v_{\text{scale}}.
-    \label{eq:controller}
+\begin{aligned}
+    \omega &= \operatorname{sat}_{\pm\omega_{\max}}\!\big(K_{\theta}\,e_{\theta}\big), \\
+    v &= \operatorname{sat}_{[0,\,v_{\max}]}\!\big(K_{d}\,d_{\text{wp}}\big)\,
+         \operatorname{sat}_{[0.1,\,1]}\!\big(\cos e_{\theta}\big)\, v_{\text{scale}},
+\end{aligned}
+\label{eq:controller}
 \end{equation}
-The turn rate is limited to $\omega_{\max} = 2\pi/5$~rad/s and
-$K_{d}\,d_{\text{wp}}$ to $v_{\max} = 1.0$~m/s, and the factor
-$\cos e_{\theta}$ is kept between $0.1$ and $1$. The gains are
-$K_{\theta} = 1.0$~s$^{-1}$ and $K_{d} = 0.75$~s$^{-1}$. The speed limit
-is the main trade-off between mission time and safety and is examined
-with the other results in Section~\ref{sec:results}.
+with $K_{\theta} = 2.0$~s$^{-1}$, $\omega_{\max} = 2\pi/5$~rad/s,
+$K_{d} = 0.75$~s$^{-1}$ and $v_{\max} = 1.0$~m/s. The vehicle's
+inverse-kinematics block converts $v$ and $\omega$ into wheel speeds and
+steering angles, so the controller sees a unicycle,
+$\dot{x} = v\cos\theta$, $\dot{y} = v\sin\theta$, $\dot{\theta} = \omega$.
+
+\textbf{Heading loop.} While the turn-rate limit is inactive, the
+heading obeys $\dot{\theta} = K_{\theta}(\theta_{\text{safe}} - \theta)$:
+a first-order lag with time constant $1/K_{\theta} = 0.5$~s and no
+overshoot. The vehicle itself integrates the turn rate, so a constant
+heading is reached with zero steady-state error and the integral and
+derivative terms of a PID controller are not needed. Beyond
+$|e_{\theta}| = \omega_{\max}/K_{\theta} = 36^{\circ}$ the limit takes
+over and a large error is removed at the maximum turn rate.
+
+\textbf{Speed law.} $K_{d}\,d_{\text{wp}}$ exceeds $v_{\max}$ beyond
+$v_{\max}/K_{d} = 1.33$~m from the waypoint, so the vehicle runs at the
+limit except on the last $1.33$~m of each leg, where its speed falls in
+proportion to the distance. An intermediate waypoint is captured at
+$0.4$~m, at about $0.3$~m/s; the last is captured at $0.10$~m, which the
+vehicle approaches at under $0.08$~m/s, so it can stop on it. The factor
+$\cos e_{\theta}$ couples speed to heading error: the vehicle slows while
+it turns onto a new heading, which shrinks its turn radius $v/\omega$
+when it most needs to turn. The floor of $0.1$ keeps it moving, because
+a steered vehicle cannot turn in place. At full speed the tightest turn,
+$v_{\max}/\omega_{\max} = 0.80$~m, sets the planner's minimum radius
+(Section~\ref{sec:planning}).
+
+\textbf{Measured behaviour.} The speed command before $v_{\text{scale}}$
+was logged with $d_{\text{wp}}$, so $\cos e_{\theta}$, and hence the
+heading error, follows from their ratio. Over the $25$ missions of
+Section~\ref{sec:results} the heading error had a median of
+$4.2^{\circ}$, was below $30^{\circ}$ for $97$\% of the time and beyond
+the $36^{\circ}$ saturation point for $2.9$\%. The true turn rate,
+from the noise-free pose, reached $\omega_{\max}$ for $3.1$\% of the
+driving time, and the speed limit governed $92$\% of it, so the
+controller works mostly in its linear range.
+
+\textbf{Gain tuning.} Missions $1$ to $8$ were repeated with
+$K_{\theta} = 0.5$, $1$, $2$ and $3$~s$^{-1}$, and with $K_{d} = 0.4$,
+$0.75$ and $1.5$~s$^{-1}$; none breached the clearance. Raising
+$K_{\theta}$ from Part~A's $1$ to $2$ shortened the mean mission from
+$117.9$ to $111.6$~s, nearly halved the RMS cross-track error, from
+$0.17$ to $0.09$~m, and raised the worst wall and obstacle clearances
+from $0.68$ to $0.77$~m and from $0.59$ to $0.61$~m. At $0.5$ the
+vehicle lagged its path ($0.29$~m RMS) and passed $0.47$~m from a wall.
+At $3$ the mission was only $1$\% faster than at $2$, but the worst wall
+clearance fell to $0.61$~m, so $K_{\theta} = 2$ was chosen. The speed
+gain matters less: $K_{d} = 0.4$ lengthened the mission by $9$\%, and
+$1.5$ saved $3$\% for a worst wall clearance $0.06$~m lower, so
+$K_{d} = 0.75$ was kept.
 
 % ============================================================
 % RESULTS
@@ -188,90 +226,90 @@ obstacle's surface and must be at least $0.40$~m.
         \textbf{Metric} & \textbf{Mean} & \textbf{Min} & \textbf{Max} \\
         \midrule
         Missions completed                    & \multicolumn{3}{c}{25 of 25} \\
-        Mission time (s)                      & 122.9 & 78.2 & 175.3 \\
+        Mission time (s)                      & 117.2 & 75.5 & 167.6 \\
         Planned path length (m)               & 107.6 & 66.6 & 157.3 \\
-        Min.\ obstacle clearance (m)          & 0.72 & 0.58 & 1.01 \\
-        Min.\ wall clearance (m)              & 0.76 & 0.65 & 0.88 \\
-        \quad by estimate: obstacle (m)       & 0.66 & 0.44 & 0.94 \\
-        \quad by estimate: wall (m)           & 0.68 & 0.59 & 0.82 \\
-        Position error of estimate, RMS (m)   & 0.079 & 0.077 & 0.081 \\
+        Min.\ obstacle clearance (m)          & 0.76 & 0.61 & 0.89 \\
+        Min.\ wall clearance (m)              & 0.78 & 0.63 & 0.89 \\
+        \quad by estimate: obstacle (m)       & 0.69 & 0.49 & 0.83 \\
+        \quad by estimate: wall (m)           & 0.70 & 0.53 & 0.85 \\
+        Position error of estimate, RMS (m)   & 0.080 & 0.077 & 0.083 \\
         Capture error, waypoints 1--4 (m)     & 0.39 & 0.38 & 0.40 \\
-        Capture error, final waypoint (m)     & 0.094 & 0.062 & 0.100 \\
-        Final stop, true distance (m)         & 0.14 & 0.05 & 0.22 \\
-        Closest approach, waypoints 1--4 (m)  & 0.12 & 0.05 & 0.23 \\
-        RMS cross-track error (m)             & 0.16 & 0.14 & 0.18 \\
-        Max.\ cross-track error (m)           & 0.43 & 0.36 & 0.49 \\
-        Re-plans per mission                  & 3.2 & 1 & 6 \\
-        Re-plan computation (s)               & 0.20 & 0.12 & 0.65 \\
-        Obstacle repulsion active (s)         & 0.36 & 0 & 1.61 \\
-        Wall repulsion active (s)             & 9.1 & 2.8 & 17.2 \\
+        Capture error, final waypoint (m)     & 0.091 & 0.071 & 0.100 \\
+        Final stop, true distance (m)         & 0.11 & 0.03 & 0.20 \\
+        Closest approach, waypoints 1--4 (m)  & 0.15 & 0.04 & 0.24 \\
+        RMS cross-track error (m)             & 0.09 & 0.08 & 0.10 \\
+        Max.\ cross-track error (m)           & 0.35 & 0.31 & 0.39 \\
+        Re-plans per mission                  & 3.3 & 1 & 7 \\
+        Re-plan computation (s)               & 0.22 & 0.12 & 0.92 \\
+        Obstacle repulsion active (s)         & 0.12 & 0 & 0.84 \\
+        Wall repulsion active (s)             & 9.9 & 4.0 & 17.6 \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
 \textbf{Completion and time.} All $25$ missions captured every waypoint
-in order (Table~\ref{tab:results}). The mean mission took $123$~s for a
-$108$~m planned path. The vehicle drove $111$~m, $3.0$\% further, which
+in order (Table~\ref{tab:results}). The mean mission took $117$~s for a
+$108$~m planned path. The vehicle drove $109$~m, $1.3$\% further, which
 is the cost of the detours, of tracking error and of turning onto each
-waypoint, at a mean speed of $0.90$~m/s against the $1.0$~m/s limit. By
+waypoint, at a mean speed of $0.93$~m/s against the $1.0$~m/s limit. By
 its estimate the vehicle captured the last waypoint within $0.10$~m in
-every mission. By the true pose it stopped $0.14$~m from it on average
-and never more than $0.22$~m away; the difference is the estimate error
+every mission. By the true pose it stopped $0.11$~m from it on average
+and never more than $0.20$~m away; the difference is the estimate error
 at the moment of capture. Figure~\ref{fig:mission} shows one mission.
 
 \begin{figure}[!t]
     \centering
-    \reportfig{fig_mission.png}
+    \reportfig{fig_mission_k2.png}
     \caption{Mission 9 as driven, by the true pose. Diamonds mark where
     the path was re-planned.}
     \label{fig:mission}
 \end{figure}
 
 \textbf{Clearance.} No mission breached the required clearance
-(Fig.~\ref{fig:batch}). The closest true pass was $0.58$~m from an
-obstacle, in mission~23, and $0.65$~m from a wall, in mission~14, a
-margin of at least $0.18$~m in every mission. The vehicle's own
+(Fig.~\ref{fig:batch}). The closest true pass was $0.61$~m from an
+obstacle, in mission~5, and $0.63$~m from a wall, in mission~9, a
+margin of at least $0.20$~m in every mission. The vehicle's own
 estimate never put it inside the limit either: its closest estimated
-pass was $0.44$~m from an obstacle, in mission~9, where the true
-clearance was $0.58$~m. The estimate can place the vehicle up to
-$0.14$~m closer to an obstacle than it really is, and this is why the
+pass was $0.49$~m from an obstacle, in mission~12, where the true
+clearance was $0.63$~m. The estimate can place the vehicle up to
+$0.16$~m closer to an obstacle than it really is, and this is why the
 margins of Sections~\ref{sec:planning} and~\ref{sec:avoidance} are
 sized against the measured estimate error rather than against zero.
 
 \begin{figure*}[!t]
     \centering
-    \reportfig[0.9\textwidth]{fig_batch.png}
+    \reportfig[0.9\textwidth]{fig_batch_k2.png}
     \caption{Minimum true clearance (left) and mission time with number
     of re-plans (right) for each of the $25$ missions.}
     \label{fig:batch}
 \end{figure*}
 
 \textbf{Avoidance layers.} The path was re-planned between one and six
-times in every mission. Each re-plan took $0.20$~s to compute on
-average and $0.65$~s at most. The obstacle repulsion of the reactive
-layer acted in $14$ of the $25$ missions, for $0.36$~s per mission on
-average and never for more than $1.61$~s. The wall repulsion acted in
-every mission, for $9.1$~s on average, mostly as a light correction in
+times in every mission. Each re-plan took $0.22$~s to compute on
+average and $0.92$~s at most. The obstacle repulsion of the reactive
+layer acted in $10$ of the $25$ missions, for $0.12$~s per mission on
+average and never for more than $0.84$~s. The wall repulsion acted in
+every mission, for $9.9$~s on average, mostly as a light correction in
 doorways and narrow corridors. With the re-planner switched off,
-six of missions $1$ to $8$ breached the obstacle clearance, the worst
-passing $0.27$~m from an obstacle, with the reactive layer acting for
-$4.9$~s per mission. At its backup tuning the reactive layer cannot keep the
+five of missions $1$ to $8$ breached the obstacle clearance, the worst
+passing $0.29$~m from an obstacle, with the reactive layer acting for
+$4.1$~s per mission. At its backup tuning the reactive layer cannot keep the
 clearance alone; re-planning is what provides it.
 
 \textbf{Tracking and capture.} The cross-track error, measured from the
 true pose against the path that was active at each instant, had an RMS
-of $0.16$~m and a largest value of $0.49$~m (Fig.~\ref{fig:timeline}).
+of $0.09$~m and a largest value of $0.39$~m (Fig.~\ref{fig:timeline}).
 The peaks exceed the $0.20$~m added to the wall inflation; it is the
 soft clearance, which keeps the path about $0.9$~m from walls wherever
 there is room, that absorbs them. Waypoints $1$ to $4$ are captured on
 entering a $0.4$~m capture radius, so their capture error equals the
 radius by design. The path runs through each waypoint, so the vehicle
-carries on past it after capture: its true path passed within $0.12$~m
-of them on average and never more than $0.23$~m away.
+carries on past it after capture: its true path passed within $0.15$~m
+of them on average and never more than $0.24$~m away.
 
 \begin{figure}[!tb]
     \centering
-    \reportfig{fig_timeline.png}
+    \reportfig{fig_timeline_k2.png}
     \caption{True clearance and cross-track error in mission 9. Dotted
     lines mark the two re-plans.}
     \label{fig:timeline}
@@ -279,18 +317,19 @@ of them on average and never more than $0.23$~m away.
 
 \textbf{Speed and capture radius.} Table~\ref{tab:sweep} repeats
 missions $1$ to $8$ with one parameter changed at a time. Raising the
-speed limit to $1.5$~m/s cut the mission time by $23$\%, but one
-mission passed $0.37$~m from an obstacle, and at $2.0$~m/s one mission
-breached the clearance again. One cause is known: the paths are planned
-for a turn radius of $1.0$~m, but at these speeds the tightest turn the
-vehicle can hold grows to $1.2$~m and $1.6$~m, so it can no longer
-follow the planned curves, and the RMS cross-track error rises from
-$0.17$~m to $0.30$~m and $0.41$~m. A limit of $1.0$~m/s was therefore
-the fastest of the three tested that kept the clearance, with no other
-parameter re-tuned. Doubling the capture radius to $0.8$~m saved
-$3.6$\% in time with no loss of clearance, but the vehicle then passed
-the intermediate waypoints $0.35$~m away on average instead of
-$0.13$~m. The $0.4$~m radius was chosen so that every waypoint is
+speed limit to $1.5$~m/s cut the mission time by $26$\% and still kept
+the clearance, but the worst pass was $0.49$~m from an obstacle, a
+margin of only $0.09$~m; at $2.0$~m/s one mission came within $0.34$~m
+of a wall. The paths are planned for a turn radius of $1.0$~m, but at
+these speeds the tightest turn the vehicle can hold grows to $1.2$~m
+and $1.6$~m, so it can no longer follow the planned curves, and the RMS
+cross-track error rises from $0.09$~m to $0.19$~m and $0.31$~m. A
+$0.09$~m margin is smaller than the $0.18$~m the estimate can be wrong by
+(Section~\ref{sec:estimator}), so $1.0$~m/s, whose worst margin is
+$0.21$~m, was kept. Doubling the capture radius to $0.8$~m saved
+$3.5$\% in time with no loss of clearance, but the vehicle then passed
+the intermediate waypoints $0.41$~m away on average instead of
+$0.16$~m. The $0.4$~m radius was chosen so that every waypoint is
 visibly visited, at a small cost in time.
 
 \begin{table}[!t]
@@ -303,12 +342,12 @@ visibly visited, at a small cost in time.
         & & $v_{\max}$ & $v_{\max}$ & $r_{c}$ \\
         & \textbf{Base} & \textbf{1.5} & \textbf{2.0} & \textbf{0.8} \\
         \midrule
-        Mean mission time (s)          & 117.9 & 90.6 & 79.4 & 113.7 \\
-        Worst wall clearance (m)       & 0.68 & 0.54 & 0.42 & 0.66 \\
-        Worst obstacle clearance (m)   & 0.59 & 0.37 & 0.35 & 0.59 \\
-        Missions below $0.40$~m        & 0 & 1 & 1 & 0 \\
-        RMS cross-track error (m)      & 0.17 & 0.30 & 0.41 & 0.16 \\
-        Closest approach (m)           & 0.13 & 0.10 & 0.07 & 0.35 \\
+        Mean mission time (s)          & 111.6 & 83.0 & 70.8 & 107.7 \\
+        Worst wall clearance (m)       & 0.77 & 0.60 & 0.34 & 0.72 \\
+        Worst obstacle clearance (m)   & 0.61 & 0.49 & 0.42 & 0.62 \\
+        Missions below $0.40$~m        & 0 & 0 & 1 & 0 \\
+        RMS cross-track error (m)      & 0.09 & 0.19 & 0.31 & 0.09 \\
+        Closest approach (m)           & 0.16 & 0.10 & 0.08 & 0.41 \\
         \bottomrule
     \end{tabularx}
 \end{table}

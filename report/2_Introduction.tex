@@ -44,11 +44,11 @@ the path is re-planned around it, and a reactive potential field acts as a
 close-range backup. Both layers are designed around a required clearance of
 $0.40$~m, the vehicle radius plus a safety margin.
 Across $25$ randomised missions the vehicle captured every waypoint,
-completing a $108$~m mission in $123$~s on average. Measured from the
+completing a $108$~m mission in $117$~s on average. Measured from the
 simulator's noise-free pose, it kept the required clearance in every
-mission, with a margin of at least $0.18$~m: the closest passes were
-$0.58$~m from an obstacle and $0.65$~m from a wall, and each waypoint
-was passed within $0.23$~m. The estimator's
+mission, with a margin of at least $0.20$~m: the closest passes were
+$0.61$~m from an obstacle and $0.63$~m from a wall, and each waypoint
+was passed within $0.24$~m. The estimator's
 noise model was calibrated against the measured sensor noise, a
 standard deviation of $0.10$~m and $2^{\circ}$, and the clearance
 margins are sized against its $0.08$~m RMS position error.
@@ -78,7 +78,9 @@ location without colliding with its surroundings \cite{siegwart2011}.
 
 Part~A of this project addressed the first two of these problems in an
 obstacle-free field \cite{partA_est, partA_group}: the vehicle estimated
-its state and drove straight between ordered waypoints. Part~B adds
+its state and drove straight between ordered waypoints. The subsystems
+carried over from Part~A are described in those reports and are not
+explained again here; only the changes made for Part~B are given. Part~B adds
 walls, which are known from a map, and obstacles, which are not known in
 advance and can only be detected by onboard sensors as the vehicle
 moves. This turns a tracking problem into a planning problem. The
@@ -96,7 +98,8 @@ results, and Section~\ref{sec:conclusion} concludes.
 \label{sec:overview}
 
 The arena is a $52 \times 41$~m walled map containing twelve static
-obstacles of radius $0.15$~m. The vehicle is an Ackermann-steered ground
+obstacles. The simulator treats an obstacle as a point; as the unit FAQ
+(item 12) allows, each is taken to be a disc of radius $0.15$~m. The vehicle is an Ackermann-steered ground
 robot of radius $0.25$~m that starts at $(2, 2)$~m. Each mission places
 five waypoints at random in free space, at least $1.0$~m from every
 obstacle's centre. The vehicle must visit all of them and stop on the last one,
@@ -106,8 +109,12 @@ obstacle. Its centre must therefore stay at least
     d_{\text{clear}} = 0.25 + 0.15 = 0.40\ \text{m}
     \label{eq:clearance}
 \end{equation}
-from every wall face and obstacle surface, which is $0.55$~m from an
-obstacle's centre.
+from every wall face and obstacle surface. Throughout this report,
+\emph{clearance} means this distance, from the vehicle's centre to a
+wall face or an obstacle's surface, and the requirement is always
+$0.40$~m. Where a distance is measured from an obstacle's centre
+instead, it is stated as such: the requirement is then
+$0.40 + 0.15 = 0.55$~m.
 
 Figure~\ref{fig:architecture} shows the architecture and
 Table~\ref{tab:io} the inputs, outputs and rate of each subsystem. The
