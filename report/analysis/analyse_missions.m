@@ -198,16 +198,23 @@ for k = 1:size(obs, 1)
 end
 % path before the re-plan thin grey dashed, new path solid orange, driven
 % path solid blue on top
-h2 = plot(ax, best.prev(:,1), best.prev(:,2), '--', 'Color', [0.55 0.55 0.55], 'LineWidth', 1.4);
-h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', ORANGE, 'LineWidth', 3.0);
-h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', C.drv, 'LineWidth', 1.8);
+% every path the vehicle had: raw A* route and smoothed plan before the
+% re-plan, the re-planned path as a wide see-through band, and the driven
+% path as a thin line on top, so overlapping paths stay visible
+h1 = plot(ax, rb.astar_path(:,1), rb.astar_path(:,2), ':', 'Color', [0.35 0.35 0.40], 'LineWidth', 1.1);
+h2 = plot(ax, best.prev(:,1), best.prev(:,2), '--', 'Color', [0.60 0.60 0.60], 'LineWidth', 1.4);
+h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', [ORANGE 0.45], 'LineWidth', 6.0);
+h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', [0.00 0.30 0.70], 'LineWidth', 1.3);
 plot(ax, rp(1), rp(2), 'd', 'MarkerSize', 8, 'MarkerFaceColor', ORANGE, 'MarkerEdgeColor', 'k');
 inview = abs(rb.wp_ordered(:,1) - cx) < hw - 0.3 & abs(rb.wp_ordered(:,2) - cy) < hw - 0.3;
 plot(ax, rb.wp_ordered(:,1), rb.wp_ordered(:,2), WP{:});
-label_wps(ax, rb.wp_ordered .* inview + 1e6*~inview);   % no labels for waypoints out of view
+for kw = find(inview)'                                     % label inside the view, above-left of the marker
+    text(ax, rb.wp_ordered(kw,1) - 0.30, rb.wp_ordered(kw,2) + 0.35, sprintf('%d', kw), ...
+         'FontWeight', 'bold', 'FontSize', 9, 'HorizontalAlignment', 'right', 'Clipping', 'on');
+end
 xlim(ax, cx + [-hw hw]);  ylim(ax, cy + [-hw hw]);
-legend(ax, [h2 h5 h6 ho hk], {'Path before re-plan', 'Re-planned path', 'Driven path', ...
-       '0.40 m clearance (from surface)', '0.8 m keep-out'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
+legend(ax, [h1 h2 h5 h6 ho hk], {'Raw A* route', 'Plan before re-plan', 'Re-planned path', ...
+       'Driven path', '0.40 m clearance', '0.8 m keep-out'}, 'Location', 'southoutside', 'NumColumns', 2, 'FontSize', 8);
 save_fig(f, figDir, 'fig_replan');
 fidx = fopen(fullfile(outDir, 'summary.txt'), 'a');
 fprintf(fidx, ['fig_replan: mission seed %d, re-plan %d, obstacle %d at (%.1f, %.1f); path before passed %.2f m ' ...

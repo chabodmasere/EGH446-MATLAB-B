@@ -284,21 +284,17 @@ times in every mission. Each re-plan took $0.22$~s to compute on
 average and $0.92$~s at most. The obstacle repulsion of the reactive
 layer acted in $10$ of the $25$ missions, for $0.12$~s per mission on
 average and never for more than $0.84$~s. The wall repulsion acted in
-every mission, for $9.9$~s on average, mostly as a light correction in
-doorways and narrow corridors. With the re-planner switched off,
+every mission, for $9.9$~s on average. With the re-planner switched off,
 five of missions $1$ to $8$ breached the obstacle clearance, the worst
 passing $0.29$~m from an obstacle, with the reactive layer acting for
-$4.1$~s per mission. At its backup tuning the reactive layer cannot keep the
-clearance alone; re-planning is what provides it.
+$4.1$~s per mission.
 
 \textbf{Tracking and capture.} The cross-track error, measured from the
 true pose against the path that was active at each instant, had an RMS
 of $0.09$~m and a largest value of $0.39$~m.
 The peaks exceed the $0.20$~m added to the wall inflation; it is the
 soft clearance, which keeps the path about $0.9$~m from walls wherever
-there is room, that absorbs them. Waypoints $1$ to $4$ are captured on
-entering a $0.4$~m capture radius, so their capture error equals the
-radius by design. The path runs through each waypoint, so the vehicle
+there is room, that absorbs them. The path runs through each waypoint, so the vehicle
 carries on past it after capture: its true path passed within $0.15$~m
 of them on average and never more than $0.24$~m away.
 
