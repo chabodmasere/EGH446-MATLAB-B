@@ -204,10 +204,20 @@ end
 % every path the vehicle had: raw A* route and smoothed plan before the
 % re-plan, the re-planned path as a wide see-through band, and the driven
 % path as a thin line on top, so overlapping paths stay visible
-h1 = plot(ax, rb.astar_path(:,1), rb.astar_path(:,2), ':', 'Color', SIM.astar, 'LineWidth', 1.3);
-h2 = plot(ax, best.prev(:,1), best.prev(:,2), '--', 'Color', SIM.plan, 'LineWidth', 2.0);
-h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', [SIM.rep 0.45], 'LineWidth', 6.0);
+% drawn bottom to top so overlapping paths stay readable: the re-plan as a
+% wide see-through band, the plan with a dark outline, the raw A* route as
+% a dark dotted line on top of the plan, and the driven path (outlined) last
+OUTL = [0.15 0.15 0.20];
+h5 = plot(ax, Pn(:,1), Pn(:,2), '-', 'Color', [SIM.rep 0.40], 'LineWidth', 8.0);
+plot(ax, best.prev(:,1), best.prev(:,2), '-', 'Color', OUTL, 'LineWidth', 3.4);
+h2 = plot(ax, best.prev(:,1), best.prev(:,2), '-', 'Color', SIM.plan, 'LineWidth', 2.2);
+h1 = plot(ax, rb.astar_path(:,1), rb.astar_path(:,2), ':', 'Color', [0.30 0.30 0.35], 'LineWidth', 1.6);
+plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', [0.00 0.25 0.45], 'LineWidth', 3.2);
 h6 = plot(ax, rb.p(:,1), rb.p(:,2), '-', 'Color', SIM.drv, 'LineWidth', 1.8);
+for k = 1:size(obs, 1)                                     % obstacles back on top of the paths
+    patch(ax, obs(k,1) + OBS_R*cos(th), obs(k,2) + OBS_R*sin(th), C.obs(min(max(round(obs(k,3)), 1), 3), :), ...
+          'EdgeColor', 'k', 'LineWidth', 0.5);
+end
 plot(ax, rp(1), rp(2), 'd', 'MarkerSize', 8, 'MarkerFaceColor', SIM.rep, 'MarkerEdgeColor', 'k');
 inview = abs(rb.wp_ordered(:,1) - cx) < hw - 0.3 & abs(rb.wp_ordered(:,2) - cy) < hw - 0.3;
 plot(ax, rb.wp_ordered(:,1), rb.wp_ordered(:,2), 'o', 'MarkerSize', 8, 'MarkerFaceColor', SIM.wp, 'MarkerEdgeColor', 'k');
