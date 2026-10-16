@@ -74,11 +74,9 @@ ten times too large in position. Consecutive samples are correlated ($0.5$) and 
 $0.1$~s apart are not; the filter treats every $20$~Hz sample as
 independent, which slightly overstates the information it receives.
 
-The speed noise was measured the same way, against the speed
-differenced from the noise-free pose. Its standard deviation,
-$0.107$~m/s, confirms the $\sigma_{v} = 0.1$~m/s carried over from
-Part~A; its correlation in time cannot be resolved, because the
-reference speed is itself derived from the $20$~Hz pose.
+The speed noise, measured the same way against the speed differenced
+from the noise-free pose, has a standard deviation of $0.107$~m/s,
+which confirms the $\sigma_{v} = 0.1$~m/s carried over from Part~A.
 $R$ was set to the measured values, $\sigma_{xy} = 0.10$~m and
 $\sigma_{\theta} = 2^{\circ}$, with $\sigma_{v} = 0.1$~m/s unchanged.
 The Kalman gain depends on the ratio of $Q$ to $R$, so the velocity
@@ -97,10 +95,7 @@ weakness identified in Part~A \cite{partA_est}. The filter reduces the planar po
 from $0.139$~m RMS in the raw measurement to $0.080$~m, and $99$\% of
 its errors are below $0.18$~m. That value is what the $0.20$~m tracking
 margin of Section~\ref{sec:planning} and the $0.25$~m obstacle margin of
-Section~\ref{sec:avoidance} are sized against. In closed loop on missions
-$1$ to $8$ (with the earlier $0.8$~m capture radius and $K_{\theta} = 1$), the recalibrated filter also raised the worst true
-clearance slightly, from $0.57$ to $0.59$~m to an obstacle and from
-$0.63$ to $0.66$~m to a wall.
+Section~\ref{sec:avoidance} are sized against.
 
 \subsection{Modifications for Part B}
 \textbf{Path following.} In Part~A no wall stood between waypoints.
