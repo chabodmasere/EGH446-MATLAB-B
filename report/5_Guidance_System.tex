@@ -27,7 +27,7 @@ in each.
 
 \subsection{State Estimator and Noise Characterisation}
 \label{sec:estimator}
-Every other subsystem acts on the estimate $\hat{\mathbf{x}}$, and the
+Guidance, both avoidance layers and the controller act on the estimate $\hat{\mathbf{x}}$, and the
 obstacle positions are built from it (Eq.~\eqref{eq:detection}), so its
 error sets the margins used throughout this report. The estimator is
 the linear Kalman filter of Part~A \cite{partA_est}, run at $100$~Hz on
@@ -65,7 +65,7 @@ Part~B model also outputs the vehicle pose before noise is added, so
 the noise can be measured directly as the measured minus the noise-free
 pose. Over the $25$ missions of Section~\ref{sec:results}
 ($\approx 60\,000$ samples) it is zero-mean, uncorrelated between axes and
-Gaussian in shape, with a standard deviation of $0.10$~m per axis and
+close to Gaussian (kurtosis $3.0$ to $3.2$), with a standard deviation of $0.10$~m per axis and
 $1.96^{\circ}$ in heading. The
 Part~B simulator is therefore three times less noisy in position than
 Part~A and somewhat noisier in heading, and the carried-over $R$ was
@@ -177,8 +177,8 @@ Section~\ref{sec:results} the heading error had a median of
 $4.2^{\circ}$, was below $30^{\circ}$ for $97$\% of the time and beyond
 the $36^{\circ}$ saturation point for $2.9$\%. The true turn rate,
 from the noise-free pose, reached $\omega_{\max}$ for $3.1$\% of the
-driving time, and the speed command was at its limit for $92$\% of the
-driving time, so the controller works mostly in its linear range.
+driving time, so the heading loop works mostly in its linear range. The
+distance term $K_{d}\,d_{\text{wp}}$ was above $v_{\max}$ for $92$\% of the time.
 
 \textbf{Gain tuning.} Missions $1$ to $8$ were repeated with
 $K_{\theta} = 0.5$, $1$, $2$ and $3$~s$^{-1}$, and with $K_{d} = 0.4$,
@@ -186,7 +186,7 @@ $0.75$ and $1.5$~s$^{-1}$; none breached the clearance. Raising
 $K_{\theta}$ from Part~A's $1$ to $2$ shortened the mean mission from
 $117.9$ to $111.6$~s, nearly halved the RMS cross-track error, from
 $0.17$ to $0.09$~m, and raised the worst wall and obstacle clearances
-from $0.68$ to $0.77$~m and from $0.59$ to $0.61$~m. At $0.5$ the
+from $0.67$ to $0.77$~m and from $0.59$ to $0.61$~m. At $0.5$ the
 vehicle lagged its path ($0.29$~m RMS) and passed $0.47$~m from a wall.
 At $3$ the mission was only $1$\% faster than at $2$, but the worst wall
 clearance fell to $0.61$~m, so $K_{\theta} = 2$ was chosen. The speed
@@ -304,8 +304,8 @@ these speeds the tightest turn the vehicle can hold grows to $1.2$~m
 and $1.6$~m, so it can no longer follow the planned curves, and the RMS
 cross-track error rises from $0.09$~m to $0.19$~m and $0.31$~m. A
 $0.09$~m margin is smaller than the estimate's $99$th-percentile error of
-$0.18$~m (Section~\ref{sec:estimator}), so $1.0$~m/s, whose worst margin is
-$0.21$~m, was kept. Doubling the capture radius to $0.8$~m saved
+$0.18$~m (Section~\ref{sec:estimator}), so $1.0$~m/s, with a worst margin
+above $0.20$~m, was kept. Doubling the capture radius to $0.8$~m saved
 $3.5$\% in time with no loss of clearance, but the vehicle then passed
 the intermediate waypoints $0.41$~m away on average instead of
 $0.16$~m.

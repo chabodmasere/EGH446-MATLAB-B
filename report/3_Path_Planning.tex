@@ -15,7 +15,7 @@ that runs inside the keep-out of an obstacle it did not know. Obstacles are
 handled during the mission (Section~\ref{sec:avoidance}).
 
 \subsection{Map Inflation}
-Growing every wall by $d_{\text{clear}}$ lets the vehicle be planned as
+Growing every wall by at least $d_{\text{clear}}$ lets the vehicle be planned as
 a point in configuration space \cite{lozanoperez1983, lavalle2006}. The
 map is an occupancy grid with $0.1$~m cells, and the planner searches
 over the cell corners. Each wall cell is therefore first extended to the
